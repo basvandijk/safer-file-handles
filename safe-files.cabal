@@ -1,0 +1,27 @@
+name:          safe-files
+version:       0.1
+cabal-version: >=1.6
+build-type:    Simple
+license:       BSD3
+license-file:  LICENSE
+copyright:     2009 Bas van Dijk
+author:        Bas van Dijk
+maintainer:    Bas van Dijk <v.dijk.bas@gmail.com>
+stability:     experimental
+category:      System
+synopsis:      Type-safe file handling
+description:   TODO
+
+source-repository head
+  Type:     darcs
+  Location: http://code.haskell.org/~basvandijk/code/safe-files
+
+Library
+  GHC-Options: -O2 -Wall
+  build-depends: base                      >= 4 && < 4.3
+               , base-unicode-symbols      >= 0.1.1 && < 0.2
+               , regions                   == 0.1.*
+               , transformers              >= 0.1.4 && < 0.2
+               , MonadCatchIO-transformers == 0.0.2.*
+               , explicit-iomodes          >= 0.1.4 && < 0.2
+  exposed-modules: System.IO.SafeFiles
