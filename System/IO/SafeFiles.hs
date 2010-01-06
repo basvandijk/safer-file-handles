@@ -399,6 +399,8 @@ following convenience functions:
 
 * 'openBinaryTempFileWithDefaultPermissions'
 #endif
+
+* 'stdin', 'stdout', 'stderr'
 -}
 data File ioMode where
     File ∷ FilePath → IOMode ioMode → Binary → File ioMode
@@ -474,8 +476,11 @@ instance Resource (File ioMode) where
 -- | Handy type synonym for a regional handle to a file.
 type RegionalFileHandle ioMode = RegionalHandle (File ioMode)
 
--- | Convenience function for implicitly opening a file which should provide a
--- replacement for @System.IO.@'SIO.openFile'.
+{-| Convenience function for implicitly opening a file which should provide a
+ replacement for @System.IO.@'SIO.openFile'.
+
+Note that: @openFile filePath ioMode =@ 'open' @$@ 'File' @filePath ioMode False@.
+-}
 openFile ∷ MonadCatchIO pr
          ⇒ FilePath
          → IOMode ioMode
@@ -547,14 +552,29 @@ Does anyone have a solution?
 
 -- TODO: I need to review these:
 
+{-| Convenience function for implicitly opening standard input which should
+provide a replacement for @System.IO.@'SIO.stdin'.
+
+Note that: @stdin =@ 'open' @$@ 'Std' 'In'.
+ -}
 stdin ∷ MonadCatchIO pr
       ⇒ RegionT (File R) s pr (RegionalFileHandle R (RegionT (File R) s pr))
 stdin = open $ Std In
 
+{-| Convenience function for implicitly opening standard output which should
+provide a replacement for @System.IO.@'SIO.stdout'.
+
+Note that: @stdin =@ 'open' @$@ 'Std' 'Out'.
+ -}
 stdout ∷ MonadCatchIO pr
        ⇒ RegionT (File W) s pr (RegionalFileHandle W (RegionT (File W) s pr))
 stdout = open $ Std Out
 
+{-| Convenience function for implicitly opening standard error which should
+provide a replacement for @System.IO.@'SIO.stderr'.
+
+Note that: @stdin =@ 'open' @$@ 'Std' 'Err'.
+ -}
 stderr ∷ MonadCatchIO pr
        ⇒ RegionT (File W) s pr (RegionalFileHandle W (RegionT (File W) s pr))
 stderr = open $ Std Err
@@ -857,8 +877,11 @@ withBinaryFile ∷ MonadCatchIO pr
                → pr α
 withBinaryFile filePath ioMode = with $ File filePath ioMode True
 
--- | Convenience function for implicitly opening a file in binary mode which
--- should provide a replacement for @System.IO.@'SIO.openBinaryFile'.
+{-| Convenience function for implicitly opening a file in binary mode which
+should provide a replacement for @System.IO.@'SIO.openBinaryFile'.
+
+Note that: @openBinaryFile filePath ioMode =@ 'open' @$@ 'File' @filePath ioMode True@.
+-}
 openBinaryFile ∷ MonadCatchIO pr
                ⇒ FilePath
                → IOMode ioMode
