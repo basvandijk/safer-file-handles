@@ -14,33 +14,35 @@
 -- License     :  BSD3 (see the file LICENSE)
 -- Maintainer  :  Bas van Dijk <v.dijk.bas@gmail.com>
 --
--- This module provides the data type 'File' which represents an actual file. A
--- file is a scarce resource, that is, it can only be used by one user at a
--- time. Because of the scarcity, a file needs to be /opened/ to grant temporary
--- sole access to the file. When the file is no longer needed it should be
--- /closed/ a.s.a.p to grant others access to the file.
+-- This module provides the abstract type 'File' which represents an actual
+-- file. A file is a scarce resource, that is, in certain IOModes it can only be
+-- used by one user at a time. Because of the scarcity, a file needs to be
+-- /opened/ to grant temporary sole access to the file. When the file is no
+-- longer needed it should be /closed/ a.s.a.p to grant others access to the
+-- file.
 --
 -- The contribution of this module are as follows:
 --
 -- * First of all this module provides an instance for 'Resource' for a 'File'
--- which allows it to be used with the @regions@ package. The @region@ package
--- provides the region monad transformer. Scarce resources like files for
--- example can be opened in a region. When the region terminates, all opened
--- resources will be automatically closed. The main advantage of regions is that
--- the opened resources can not be returned from the region which ensures no I/O
--- with closed resources is possible.  The primary technique used in @regions@
--- is called \"Lightweight monadic regions\" which was invented by Oleg Kiselyov
--- and Chung-chieh Shan. See:
+-- which allows it to be used with the @regions@ package. The @regions@ package
+-- provides the region monad transformer 'RegionT'. Scarce resources, like files
+-- for example, can be opened in a region. When the region terminates, all
+-- opened resources will be automatically closed. The main advantage of regions
+-- is that the handles to the opened resources can not be returned from the
+-- region which ensures no I/O with closed resources is possible. The primary
+-- technique used in @regions@ is called \"Lightweight monadic regions\" which
+-- was invented by Oleg Kiselyov and Chung-chieh Shan. See:
 -- <http://okmij.org/ftp/Haskell/regions.html#light-weight>
 --
 -- * Secondly this module provides all the file operations of @System.IO@ lifted
 -- to the region monad.
 --
--- * The final contribution of this module is that files and file handles are
--- parameterised with the IOMode the file is in. This can be eiter 'R', 'W', 'A'
--- or 'RW'. All operations on files explicitly specify the needed IOMode using
--- the 'ReadModes' and 'WriteModes' type classes. This way it is impossible to
--- read from a write-only handle or write to a read-only handle for example.
+-- * The final contribution of this module is that file handles are
+-- parameterised with the IOMode in which the file was opened. This can be
+-- either 'R', 'W', 'A' or 'RW'. All operations on files explicitly specify the
+-- needed IOMode using the 'ReadModes' and 'WriteModes' type classes. This way
+-- it is impossible to read from a write-only handle or write to a read-only
+-- handle for example.
 --
 -- /WARNING:/ Currenly the handling of the standard files ('stdin', 'stdout' and
 -- 'stderr') is not to my liking. See the documentation for details.
@@ -51,7 +53,7 @@
 -- provide more general versions of these that work in any 'MonadIO'. It could
 -- be argued that these functions don't belong in this module because they don't
 -- have anything to do with regions and explicit IOModes. However I provide them
--- as a convenience. But be warned that in the future these lifted functions
+-- as a convenience. But be warned that in the future these lifted functions may
 -- move to their own package!
 --
 -------------------------------------------------------------------------------
@@ -63,7 +65,7 @@ module System.IO.SafeFiles
     , FilePath
 
       -- ** IO Modes
-      -- | Types that represent the IOMode of a file.
+      -- | Types that represent the IOMode an opened file can be in.
     , R, W, A, RW
 
     , ReadModes, WriteModes
@@ -375,7 +377,7 @@ instance Resource File where
              (if isBinary then SIO.openBinaryTempFile else SIO.openTempFile)
              filePath template
 #endif
-    -- TODO: I need to review this:
+    -- TODO: I need to review the handling of standard files:
     openResource (Std std) = return $ FileHandle Nothing $ stdHndl std
 
     closeResource (FileHandle _ h) = SIO.hClose h
@@ -932,3 +934,4 @@ hSetNewlineMode = wrap2 SIO.hSetNewlineMode
 
 
 -- The End ---------------------------------------------------------------------
+

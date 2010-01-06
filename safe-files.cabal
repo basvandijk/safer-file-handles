@@ -4,13 +4,54 @@ cabal-version: >=1.6
 build-type:    Simple
 license:       BSD3
 license-file:  LICENSE
-copyright:     2009 Bas van Dijk
+copyright:     2010 Bas van Dijk
 author:        Bas van Dijk
 maintainer:    Bas van Dijk <v.dijk.bas@gmail.com>
 stability:     experimental
-category:      System
+category:      System, Monadic Regions
 synopsis:      Type-safe file handling
-description:   TODO
+description:   This package adds two safety features on top of the regular
+               @System.IO@ file handles and operations:
+
+               .
+
+               * Regional file handles. Files must be opened in a /region/. When
+                 the region terminates all opened files are automatically
+                 closed. The main advantage of regions is that the handles to
+                 the opened files can not be returned from the region which
+                 ensures no I/O with closed files is possible.
+
+               .
+
+               * Explicit IOModes. The regional file handles are parameterized
+                 by the IOMode in which they were opened. All operations on
+                 handles explicitly specify the needed IOMode. This way it is
+                 impossible to read from a write-only handle or write to a
+                 read-only handle for example.
+
+               .
+
+               The primary technique used in this package is called \"Lightweight
+               monadic regions\" which was invented by Oleg Kiselyov and
+               Chung-chieh Shan. See:
+
+               .
+
+               <http://okmij.org/ftp/Haskell/regions.html#light-weight>
+
+               .
+
+               This technique is implemented in the @regions@ package which is
+               re-exported from @safe-files@.
+
+               .
+
+               See the @safe-files-examples@ package for examples how to use
+               this package:
+
+               .
+
+               darcs get <http://code.haskell.org/~basvandijk/code/safe-files-examples>
 
 source-repository head
   Type:     darcs
