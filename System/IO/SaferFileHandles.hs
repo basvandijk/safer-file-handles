@@ -9,7 +9,7 @@
 
 -------------------------------------------------------------------------------
 -- |
--- Module      :  System.IO.SafeFiles
+-- Module      :  System.IO.SaferFileHandles
 -- Copyright   :  (c) 2009 Bas van Dijk
 -- License     :  BSD3 (see the file LICENSE)
 -- Maintainer  :  Bas van Dijk <v.dijk.bas@gmail.com>
@@ -44,6 +44,11 @@
 -- it is impossible to read from a write-only handle or write to a read-only
 -- handle for example.
 --
+-- See the @safer-file-handles-examples@ package for examples how to use this
+-- package:
+--
+-- darcs get <http://code.haskell.org/~basvandijk/code/safer-file-handles-examples>
+--
 -- /WARNING:/ Currenly the handling of the standard files ('stdin', 'stdout' and
 -- 'stderr') is not to my liking. See the documentation for details.
 --
@@ -58,7 +63,7 @@
 --
 -------------------------------------------------------------------------------
 
-module System.IO.SafeFiles
+module System.IO.SaferFileHandles
     ( -- * Files with explicit IO modes as scarce resources
       File
 
