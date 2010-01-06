@@ -23,5 +23,5 @@ Library
                , regions                   == 0.1.*
                , transformers              >= 0.1.4 && < 0.2
                , MonadCatchIO-transformers == 0.0.2.*
-               , explicit-iomodes          >= 0.1.4 && < 0.2
+               , explicit-iomodes          >= 0.1.5 && < 0.2
   exposed-modules: System.IO.SafeFiles
