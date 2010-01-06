@@ -59,6 +59,8 @@ module System.IO.SafeFiles
     ( -- * Files with explicit IO modes as scarce resources
       File(..)
 
+    , FilePath
+
     , Binary
 #if MIN_VERSION_base(4,2,0)
     , DefaultPermissions
