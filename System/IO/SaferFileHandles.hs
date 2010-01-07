@@ -255,16 +255,19 @@ import System.IO ( IO
                  , BufferMode(..)
                  , HandlePosn
                  , SeekMode(..)
+#if MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
                  , TextEncoding
                  , latin1
                  , utf8, utf8_bom
                  , utf16, utf16le, utf16be
                  , utf32, utf32le, utf32be
                  , localeEncoding
+
                  , Newline(..)
                  , nativeNewline
                  , NewlineMode(..)
                  , noNewlineTranslation, universalNewlineMode, nativeNewlineMode
+#endif
                  )
 import qualified System.IO as SIO
 
