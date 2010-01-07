@@ -279,14 +279,14 @@ import Control.Monad.Trans ( MonadIO, liftIO )
 
 -- from regions:
 import Control.Monad.Trans.Region -- (re-exported entirely)
-import Control.Monad.Trans.Region.Internal ( Resource
-                                           , openResource
-                                           , closeResource
-                                           , internalHandle
-                                           , ParentOf
-                                           , Dup
-                                           )
-import qualified Control.Monad.Trans.Region.Internal as R ( Handle )
+import Control.Monad.Trans.Region.Unsafe ( Resource
+                                         , openResource
+                                         , closeResource
+                                         , internalHandle
+                                         , ParentOf
+                                         , Dup
+                                         )
+import qualified Control.Monad.Trans.Region.Unsafe as R ( Handle )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( IOMode(..)
@@ -303,6 +303,11 @@ import System.IO.ExplicitIOModes ( IOMode(..)
 -------------------------------------------------------------------------------
 
 {-| A file scarce resource.
+
+This module provides an instance for 'Resource' for 'File'. This allows you to
+open files in a region which are automatically closed when the region terminates
+but it disallows you to return handles to these closed files from the region so
+preventing I/O with closed files.
 
 You can open a file with one of the following functions:
 
@@ -395,7 +400,7 @@ instance Resource File where
 newtype RegionalFileHandle ioMode (r ∷ * → *) = RegionalFileHandle
     { unRegionalFileHandle ∷ RegionalHandle File r }
 
-instance Dup (RegionalFileHandle ioMode) File where
+instance Dup (RegionalFileHandle ioMode) where
     dup = liftM RegionalFileHandle ∘ dup ∘ unRegionalFileHandle
 
 {-| Open a file yielding a regional handle to it. This provides a safer
@@ -412,8 +417,8 @@ created you have to duplicate the handle by applying 'dup' to it.
 openFile ∷ MonadCatchIO pr
          ⇒ FilePath
          → IOMode ioMode
-         → RegionT File s pr
-                   (RegionalFileHandle ioMode (RegionT File s pr))
+         → RegionT s pr
+                   (RegionalFileHandle ioMode (RegionT s pr))
 openFile filePath ioMode = liftM RegionalFileHandle
                          $ open $ File False filePath $ regularIOMode ioMode
 
@@ -424,8 +429,8 @@ replacement for @System.IO.@'SIO.withFile'.
 withFile ∷ MonadCatchIO pr
          ⇒ FilePath
          → IOMode ioMode
-         →  (∀ s. RegionalFileHandle ioMode (RegionT File s pr)
-            → RegionT File s pr α
+         →  (∀ s. RegionalFileHandle ioMode (RegionT s pr)
+            → RegionT s pr α
             )
          → pr α
 withFile filePath ioMode f = with (File False filePath (regularIOMode ioMode))
@@ -483,19 +488,19 @@ Does anyone have a solution?
 -- | Return a regional handle to standard input. This provides a safer
 -- replacement for @System.IO.@'SIO.stdin'.
 stdin ∷ MonadCatchIO pr
-      ⇒ RegionT File s pr (RegionalFileHandle R (RegionT File s pr))
+      ⇒ RegionT s pr (RegionalFileHandle R (RegionT s pr))
 stdin = liftM RegionalFileHandle $ open $ Std In
 
 -- | Return a regional handle to standard output. This provides a safer
 -- replacement for @System.IO.@'SIO.stdout'.
 stdout ∷ MonadCatchIO pr
-       ⇒ RegionT File s pr (RegionalFileHandle W (RegionT File s pr))
+       ⇒ RegionT s pr (RegionalFileHandle W (RegionT s pr))
 stdout = liftM RegionalFileHandle $ open $ Std Out
 
 -- | Return a regional handle to standard error. This provides a safer
 -- replacement for @System.IO.@'SIO.stderr'.
 stderr ∷ MonadCatchIO pr
-       ⇒ RegionT File s pr (RegionalFileHandle W (RegionT File s pr))
+       ⇒ RegionT s pr (RegionalFileHandle W (RegionT s pr))
 stderr = liftM RegionalFileHandle $ open $ Std Err
 
 {- $TODO_cast
@@ -788,8 +793,8 @@ resulting region. This provides a safer replacement for
 withBinaryFile ∷ MonadCatchIO pr
                ⇒ FilePath
                → IOMode ioMode
-               →  (∀ s. RegionalFileHandle ioMode (RegionT File s pr)
-                  → RegionT File s pr α
+               →  (∀ s. RegionalFileHandle ioMode (RegionT s pr)
+                  → RegionT s pr α
                   )
                → pr α
 withBinaryFile filePath ioMode f = with (File True filePath (regularIOMode ioMode))
@@ -800,8 +805,8 @@ withBinaryFile filePath ioMode f = with (File True filePath (regularIOMode ioMod
 openBinaryFile ∷ MonadCatchIO pr
                ⇒ FilePath
                → IOMode ioMode
-               → RegionT File s pr
-                         (RegionalFileHandle ioMode (RegionT File s pr))
+               → RegionT s pr
+                         (RegionalFileHandle ioMode (RegionT s pr))
 openBinaryFile filePath ioMode = liftM RegionalFileHandle
                                $ open $ File True filePath (regularIOMode ioMode)
 
@@ -842,10 +847,7 @@ genOpenTempFile ∷ MonadCatchIO pr
                 → DefaultPermissions
                 → FilePath
                 → Template
-                → RegionT File s pr
-                          ( FilePath
-                          , RegionalFileHandle RW (RegionT File s pr)
-                          )
+                → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
 genOpenTempFile binary defaultPerms filePath template = do
   rh@(internalHandle → FileHandle (Just fp) _) ← open $ TempFile binary
                                                                  filePath
@@ -859,22 +861,17 @@ genOpenTempFile binary defaultPerms filePath template = do
 openTempFile ∷ MonadCatchIO pr
              ⇒ FilePath
              → Template
-             → RegionT File s pr
-                       ( FilePath
-                       , RegionalFileHandle RW (RegionT File s pr)
-                       )
+             → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
 openTempFile = genOpenTempFile False False
 
 -- | Open a temporary file in binary mode yielding a regional handle to it
 -- paired with the generated file path. This provides a safer replacement for
 -- @System.IO.@'SIO.openBinaryTempFile'.
-openBinaryTempFile ∷ MonadCatchIO pr
-                   ⇒ FilePath
-                   → Template
-                   → RegionT File s pr
-                             ( FilePath
-                             , RegionalFileHandle RW (RegionT File s pr)
-                             )
+openBinaryTempFile ∷
+    MonadCatchIO pr
+  ⇒ FilePath
+  → Template
+  → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
 openBinaryTempFile = genOpenTempFile True False
 
 #if MIN_VERSION_base(4,2,0)
@@ -885,10 +882,7 @@ openTempFileWithDefaultPermissions ∷
     MonadCatchIO pr
   ⇒ FilePath
   → Template
-  → RegionT File s pr
-            ( FilePath
-            , RegionalFileHandle RW (RegionT File s pr)
-            )
+  → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
 openTempFileWithDefaultPermissions = genOpenTempFile False True
 
 -- | Open a temporary file in binary mode with default permissions yielding a
@@ -899,10 +893,7 @@ openBinaryTempFileWithDefaultPermissions ∷
     MonadCatchIO pr
   ⇒ FilePath
   → Template
-  → RegionT File s pr
-            ( FilePath
-            , RegionalFileHandle RW (RegionT File s pr)
-            )
+  → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
 openBinaryTempFileWithDefaultPermissions = genOpenTempFile True True
 #endif
 
