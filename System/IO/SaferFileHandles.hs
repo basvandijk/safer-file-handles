@@ -889,9 +889,7 @@ genOpenTempFileWithDefaultPermissions binary filePath template = do
   rh@(internalHandle → FileHandle (Just fp) _) ← open $ TempFile binary
                                                                  filePath
                                                                  template
-#if MIN_VERSION_base(4,2,0)
                                                                  True
-#endif
   return (fp, RegionalFileHandle rh)
 
 -- | Open a temporary file with default permissions yielding a regional handle
