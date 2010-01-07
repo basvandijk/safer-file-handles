@@ -847,15 +847,16 @@ hGetBufNonBlocking = wrap3 SIO.hGetBufNonBlocking
 
 genOpenTempFile ∷ MonadCatchIO pr
                 ⇒ Binary
-                → DefaultPermissions
                 → FilePath
                 → Template
                 → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
-genOpenTempFile binary defaultPerms filePath template = do
+genOpenTempFile binary filePath template = do
   rh@(internalHandle → FileHandle (Just fp) _) ← open $ TempFile binary
                                                                  filePath
                                                                  template
-                                                                 defaultPerms
+#if MIN_VERSION_base(4,2,0)
+                                                                 False
+#endif
   return (fp, RegionalFileHandle rh)
 
 -- | Open a temporary file yielding a regional handle to it paired with the
@@ -865,7 +866,7 @@ openTempFile ∷ MonadCatchIO pr
              ⇒ FilePath
              → Template
              → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
-openTempFile = genOpenTempFile False False
+openTempFile = genOpenTempFile False
 
 -- | Open a temporary file in binary mode yielding a regional handle to it
 -- paired with the generated file path. This provides a safer replacement for
@@ -875,9 +876,24 @@ openBinaryTempFile ∷
   ⇒ FilePath
   → Template
   → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
-openBinaryTempFile = genOpenTempFile True False
+openBinaryTempFile = genOpenTempFile True
 
 #if MIN_VERSION_base(4,2,0)
+genOpenTempFileWithDefaultPermissions ∷
+    MonadCatchIO pr
+  ⇒ Binary
+  → FilePath
+  → Template
+  → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
+genOpenTempFileWithDefaultPermissions binary filePath template = do
+  rh@(internalHandle → FileHandle (Just fp) _) ← open $ TempFile binary
+                                                                 filePath
+                                                                 template
+#if MIN_VERSION_base(4,2,0)
+                                                                 True
+#endif
+  return (fp, RegionalFileHandle rh)
+
 -- | Open a temporary file with default permissions yielding a regional handle
 -- to it paired with the generated file path. This provides a safer replacement
 -- for @System.IO.@'SIO.openTempFileWithDefaultPermissions'.
@@ -886,7 +902,7 @@ openTempFileWithDefaultPermissions ∷
   ⇒ FilePath
   → Template
   → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
-openTempFileWithDefaultPermissions = genOpenTempFile False True
+openTempFileWithDefaultPermissions = genOpenTempFileWithDefaultPermissions False
 
 -- | Open a temporary file in binary mode with default permissions yielding a
 -- regional handle to it paired with the generated file path. This provides a
@@ -897,7 +913,7 @@ openBinaryTempFileWithDefaultPermissions ∷
   ⇒ FilePath
   → Template
   → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
-openBinaryTempFileWithDefaultPermissions = genOpenTempFile True True
+openBinaryTempFileWithDefaultPermissions = genOpenTempFileWithDefaultPermissions True
 #endif
 
 
