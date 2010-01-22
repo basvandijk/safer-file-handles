@@ -1,11 +1,12 @@
-{-# LANGUAGE UnicodeSyntax #-}
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UnicodeSyntax
+           , NoImplicitPrelude
+           , CPP
+           , GADTs
+           , TypeFamilies
+           , RankNTypes
+           , ViewPatterns
+           , MultiParamTypeClasses
+  #-}
 
 -------------------------------------------------------------------------------
 -- |
