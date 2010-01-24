@@ -47,7 +47,7 @@
 -- See the @safer-file-handles-examples@ package for examples how to use this
 -- package:
 --
--- darcs get <http://code.haskell.org/~basvandijk/code/safer-file-handles-examples>
+-- @darcs get <http://code.haskell.org/~basvandijk/code/safer-file-handles-examples>@
 --
 -- Note that this package is early work and still very experimental. Take note
 -- of the following warnings:
@@ -332,7 +332,7 @@ import System.IO.SaferFileHandles.Internal
 {-| Convenience function for opening a file which yields a regional handle to
 it. This provides a safer replacement for @System.IO.@'SIO.openFile'.
 
-Note that: @openFile filePath ioMode =@ 'open' @$@ 'File' @False filePath ioMode@
+Note that: @openFile filePath ioMode = 'open' $ 'File' False filePath ioMode@.
 
 Note that the returned regional file handle is parameterized by the region in
 which it was created. This ensures that handles can never escape their
@@ -353,8 +353,7 @@ openFile filePath ioMode = open $ File False filePath ioMode
 function to the resulting regional file handle and runs the resulting
 region. This provides a safer safer replacement for @System.IO.@'SIO.withFile'.
 
-Note that: @withFile filePath ioMode =@ 'with' @$@ 'File' @False filePath ioMode@
-
+Note that: @withFile filePath ioMode = 'with' $ 'File' False filePath ioMode@.
 -}
 withFile ∷ MonadCatchIO pr
          ⇒ FilePath
@@ -415,25 +414,25 @@ Does anyone have a solution?
 -- TODO: I need to review these:
 
 -- | Convenience function for returning a regional handle to standard
--- input. This provides a safer replacement for @System.IO.@'SIO.stdin'.
+-- input. This provides a safer replacement for @System.IO.'SIO.stdin'@.
 --
--- Note that: @stdin =@ 'open' @$@ 'Std' 'In'
+-- Note that: @stdin = 'open' $ 'Std' 'In'@.
 stdin ∷ MonadCatchIO pr
       ⇒ RegionT s pr (RegionalFileHandle R (RegionT s pr))
 stdin = open $ Std In
 
 -- | Convenience function for returning a regional handle to standard
--- output. This provides a safer replacement for @System.IO.@'SIO.stdout'.
+-- output. This provides a safer replacement for @System.IO.'SIO.stdout'@.
 --
--- Note that: @stdin =@ 'open' @$@ 'Std' 'Out'
+-- Note that: @stdin = 'open' $ 'Std' 'Out'@.
 stdout ∷ MonadCatchIO pr
        ⇒ RegionT s pr (RegionalFileHandle W (RegionT s pr))
 stdout = open $ Std Out
 
 -- | Convenience function for returning a regional handle to standard
--- error. This provides a safer replacement for @System.IO.@'SIO.stderr'.
+-- error. This provides a safer replacement for @System.IO.'SIO.stderr'@.
 --
--- Note that: @stdin =@ 'open' @$@ 'Std' 'Err'
+-- Note that: @stdin = 'open' $ 'Std' 'Err'@.
 stderr ∷ MonadCatchIO pr
        ⇒ RegionT s pr (RegionalFileHandle W (RegionT s pr))
 stderr = open $ Std Err
@@ -466,13 +465,13 @@ However I'm not sure yet how to implement it...
 
 -- **  Determining and changing the size of a file
 
--- | Wraps @System.IO.@'SIO.hFileSize'.
+-- | Wraps @System.IO.'SIO.hFileSize'@.
 hFileSize ∷ (pr `ParentOf` cr, MonadIO cr)
           ⇒ RegionalFileHandle ioMode pr → cr Integer
 hFileSize = wrap E.hFileSize
 
 #ifdef __GLASGOW_HASKELL__
--- | Wraps @System.IO.@'SIO.hSetFileSize'.
+-- | Wraps @System.IO.'SIO.hSetFileSize'@.
 hSetFileSize ∷ (pr `ParentOf` cr, MonadIO cr)
              ⇒ RegionalFileHandle ioMode pr → Integer → cr ()
 hSetFileSize = wrap2 E.hSetFileSize
@@ -481,29 +480,29 @@ hSetFileSize = wrap2 E.hSetFileSize
 
 -- ** Detecting the end of input
 
--- | Wraps @System.IO.@'SIO.hIsEOF'.
+-- | Wraps @System.IO.'SIO.hIsEOF'@.
 hIsEOF ∷ (pr `ParentOf` cr, MonadIO cr, ReadModes ioMode)
        ⇒ RegionalFileHandle ioMode pr → cr Bool
 hIsEOF = wrap E.hIsEOF
 
--- | Wraps @System.IO.@'SIO.isEOF'.
+-- | Wraps @System.IO.'SIO.isEOF'@.
 isEOF ∷ MonadIO m ⇒ m Bool
 isEOF = liftIO $ E.isEOF
 
 
 -- ** Buffering operations
 
--- | Wraps @System.IO.@'SIO.hSetBuffering'.
+-- | Wraps @System.IO.'SIO.hSetBuffering'@.
 hSetBuffering ∷ (pr `ParentOf` cr, MonadIO cr)
               ⇒ RegionalFileHandle ioMode pr → BufferMode → cr ()
 hSetBuffering = wrap2 E.hSetBuffering
 
--- | Wraps @System.IO.@'SIO.hGetBuffering'.
+-- | Wraps @System.IO.'SIO.hGetBuffering'@.
 hGetBuffering ∷ (pr `ParentOf` cr, MonadIO cr)
               ⇒ RegionalFileHandle ioMode pr → cr BufferMode
 hGetBuffering = wrap E.hGetBuffering
 
--- | Wraps @System.IO.@'SIO.hFlush'.
+-- | Wraps @System.IO.'SIO.hFlush'@.
 hFlush ∷ (pr `ParentOf` cr, MonadIO cr)
        ⇒ RegionalFileHandle ioMode pr → cr ()
 hFlush = wrap E.hFlush
@@ -511,22 +510,22 @@ hFlush = wrap E.hFlush
 
 -- ** Repositioning handles
 
--- | Wraps @System.IO.@'SIO.hGetPosn'.
+-- | Wraps @System.IO.'SIO.hGetPosn'@.
 hGetPosn ∷ (pr `ParentOf` cr, MonadIO cr)
          ⇒ RegionalFileHandle ioMode pr → cr HandlePosn
 hGetPosn = wrap E.hGetPosn
 
--- | Wraps @System.IO.@'SIO.hSetPosn'.
+-- | Wraps @System.IO.'SIO.hSetPosn'@.
 hSetPosn ∷ MonadIO m ⇒ HandlePosn → m ()
 hSetPosn = liftIO ∘ E.hSetPosn
 
--- | Wraps @System.IO.@'SIO.hSeek'.
+-- | Wraps @System.IO.'SIO.hSeek'@.
 hSeek ∷ (pr `ParentOf` cr, MonadIO cr)
       ⇒ RegionalFileHandle ioMode pr → SeekMode → Integer → cr ()
 hSeek = wrap3 E.hSeek
 
 #if !defined(__NHC__)
--- | Wraps @System.IO.@'SIO.hTell'.
+-- | Wraps @System.IO.'SIO.hTell'@.
 hTell ∷ (pr `ParentOf` cr, MonadIO cr)
       ⇒ RegionalFileHandle ioMode pr → cr Integer
 hTell = wrap E.hTell
@@ -535,27 +534,27 @@ hTell = wrap E.hTell
 
 -- ** Handle properties
 
--- | Wraps @System.IO.@'SIO.hIsOpen'.
+-- | Wraps @System.IO.'SIO.hIsOpen'@.
 hIsOpen ∷ (pr `ParentOf` cr, MonadIO cr)
          ⇒ RegionalFileHandle ioMode pr → cr Bool
 hIsOpen = wrap E.hIsOpen
 
--- | Wraps @System.IO.@'SIO.hIsClosed'.
+-- | Wraps @System.IO.'SIO.hIsClosed'@.
 hIsClosed ∷ (pr `ParentOf` cr, MonadIO cr)
            ⇒ RegionalFileHandle ioMode pr → cr Bool
 hIsClosed = wrap E.hIsClosed
 
--- | Wraps @System.IO.@'SIO.hIsReadable'.
+-- | Wraps @System.IO.'SIO.hIsReadable'@.
 hIsReadable ∷ (pr `ParentOf` cr, MonadIO cr)
             ⇒ RegionalFileHandle ioMode pr → cr Bool
 hIsReadable = wrap E.hIsReadable
 
--- | Wraps @System.IO.@'SIO.hIsWritable'.
+-- | Wraps @System.IO.'SIO.hIsWritable'@.
 hIsWritable ∷ (pr `ParentOf` cr, MonadIO cr)
             ⇒ RegionalFileHandle ioMode pr → cr Bool
 hIsWritable = wrap E.hIsWritable
 
--- | Wraps @System.IO.@'SIO.hIsSeekable'.
+-- | Wraps @System.IO.'SIO.hIsSeekable'@.
 hIsSeekable ∷ (pr `ParentOf` cr, MonadIO cr)
             ⇒ RegionalFileHandle ioMode pr → cr Bool
 hIsSeekable = wrap E.hIsSeekable
@@ -564,17 +563,17 @@ hIsSeekable = wrap E.hIsSeekable
 -- ** Terminal operations (not portable: GHC/Hugs only)
 
 #if !defined(__NHC__)
--- | Wraps @System.IO.@'SIO.hIsTerminalDevice'.
+-- | Wraps @System.IO.'SIO.hIsTerminalDevice'@.
 hIsTerminalDevice ∷ (pr `ParentOf` cr, MonadIO cr)
                   ⇒ RegionalFileHandle ioMode pr → cr Bool
 hIsTerminalDevice = wrap E.hIsTerminalDevice
 
--- | Wraps @System.IO.@'SIO.hSetEcho'.
+-- | Wraps @System.IO.'SIO.hSetEcho'@.
 hSetEcho ∷ (pr `ParentOf` cr, MonadIO cr)
          ⇒ RegionalFileHandle ioMode pr → Bool → cr ()
 hSetEcho = wrap2 E.hSetEcho
 
--- | Wraps @System.IO.@'SIO.hGetEcho'.
+-- | Wraps @System.IO.'SIO.hGetEcho'@.
 hGetEcho ∷ (pr `ParentOf` cr, MonadIO cr)
          ⇒ RegionalFileHandle ioMode pr → cr Bool
 hGetEcho = wrap E.hGetEcho
@@ -584,7 +583,7 @@ hGetEcho = wrap E.hGetEcho
 -- ** Showing handle state (not portable: GHC only)
 
 #ifdef __GLASGOW_HASKELL__
--- | Wraps @System.IO.@'SIO.hShow'.
+-- | Wraps @System.IO.'SIO.hShow'@.
 hShow ∷ (pr `ParentOf` cr, MonadIO cr)
       ⇒ RegionalFileHandle ioMode pr → cr String
 hShow = wrap E.hShow
@@ -597,32 +596,32 @@ hShow = wrap E.hShow
 
 -- ** Text input
 
--- | Wraps @System.IO.@'SIO.hWaitForInput'.
+-- | Wraps @System.IO.'SIO.hWaitForInput'@.
 hWaitForInput ∷ (pr `ParentOf` cr, MonadIO cr, ReadModes ioMode)
               ⇒ RegionalFileHandle ioMode pr → Int → cr Bool
 hWaitForInput = wrap2 E.hWaitForInput
 
--- | Wraps @System.IO.@'SIO.hReady'.
+-- | Wraps @System.IO.'SIO.hReady'@.
 hReady ∷ (pr `ParentOf` cr, MonadIO cr, ReadModes ioMode)
        ⇒ RegionalFileHandle ioMode pr → cr Bool
 hReady = wrap E.hReady
 
--- | Wraps @System.IO.@'SIO.hGetChar'.
+-- | Wraps @System.IO.'SIO.hGetChar'@.
 hGetChar ∷ (pr `ParentOf` cr, MonadIO cr, ReadModes ioMode)
          ⇒ RegionalFileHandle ioMode pr → cr Char
 hGetChar = wrap E.hGetChar
 
--- | Wraps @System.IO.@'SIO.hGetLine'.
+-- | Wraps @System.IO.'SIO.hGetLine'@.
 hGetLine ∷ (pr `ParentOf` cr, MonadIO cr, ReadModes ioMode)
          ⇒ RegionalFileHandle ioMode pr → cr String
 hGetLine = wrap E.hGetLine
 
--- | Wraps @System.IO.@'SIO.hLookAhead'.
+-- | Wraps @System.IO.'SIO.hLookAhead'@.
 hLookAhead ∷ (pr `ParentOf` cr, MonadIO cr, ReadModes ioMode)
            ⇒ RegionalFileHandle ioMode pr → cr Char
 hLookAhead = wrap E.hLookAhead
 
--- | Wraps @System.IO.@'SIO.hGetContents'.
+-- | Wraps @System.IO.'SIO.hGetContents'@.
 hGetContents ∷ (pr `ParentOf` cr, MonadIO cr, ReadModes ioMode)
              ⇒ RegionalFileHandle ioMode pr → cr String
 hGetContents = wrap E.hGetContents
@@ -630,22 +629,22 @@ hGetContents = wrap E.hGetContents
 
 -- ** Text ouput
 
--- | Wraps @System.IO.@'SIO.hPutChar'.
+-- | Wraps @System.IO.'SIO.hPutChar'@.
 hPutChar ∷ (pr `ParentOf` cr, MonadIO cr, WriteModes ioMode)
          ⇒ RegionalFileHandle ioMode pr → Char → cr ()
 hPutChar = wrap2 E.hPutChar
 
--- | Wraps @System.IO.@'SIO.hPutStr'.
+-- | Wraps @System.IO.'SIO.hPutStr'@.
 hPutStr ∷ (pr `ParentOf` cr, MonadIO cr, WriteModes ioMode)
         ⇒ RegionalFileHandle ioMode pr → String → cr ()
 hPutStr = wrap2 E.hPutStr
 
--- | Wraps @System.IO.@'SIO.hPutStrLn'.
+-- | Wraps @System.IO.'SIO.hPutStrLn'@.
 hPutStrLn ∷ (pr `ParentOf` cr, MonadIO cr, WriteModes ioMode)
           ⇒ RegionalFileHandle ioMode pr → String → cr ()
 hPutStrLn = wrap2 E.hPutStrLn
 
--- | Wraps @System.IO.@'SIO.hPrint'.
+-- | Wraps @System.IO.'SIO.hPrint'@.
 hPrint ∷ (pr `ParentOf` cr, MonadIO cr, WriteModes ioMode, Show α)
        ⇒ RegionalFileHandle ioMode pr → α → cr ()
 hPrint = wrap2 E.hPrint
@@ -653,43 +652,43 @@ hPrint = wrap2 E.hPrint
 
 -- ** Special cases for standard input and output
 
--- | Generalizes @System.IO.@'SIO.interact' to any 'MonadIO'.
+-- | Generalizes @System.IO.'SIO.interact' to any 'MonadIO'@.
 interact ∷ MonadIO m ⇒ (String → String) → m ()
 interact f = liftIO $ SIO.interact f
 
--- | Generalizes @System.IO.@'SIO.putChar' to any 'MonadIO'.
+-- | Generalizes @System.IO.'SIO.putChar' to any 'MonadIO'@.
 putChar ∷ MonadIO m ⇒ Char → m ()
 putChar c = liftIO $ SIO.putChar c
 
--- | Generalizes @System.IO.@'SIO.putStr' to any 'MonadIO'.
+-- | Generalizes @System.IO.'SIO.putStr' to any 'MonadIO'@.
 putStr ∷ MonadIO m ⇒ String → m ()
 putStr s = liftIO $ SIO.putStr s
 
--- | Generalizes @System.IO.@'SIO.putStrLn' to any 'MonadIO'.
+-- | Generalizes @System.IO.'SIO.putStrLn' to any 'MonadIO'@.
 putStrLn ∷ MonadIO m ⇒ String → m ()
 putStrLn s = liftIO $ SIO.putStrLn s
 
--- | Generalizes @System.IO.@'SIO.print' to any 'MonadIO'.
+-- | Generalizes @System.IO.'SIO.print' to any 'MonadIO'@.
 print ∷ (MonadIO m, Show α) ⇒ α → m ()
 print x = liftIO $ SIO.print x
 
--- | Generalizes @System.IO.@'SIO.getChar' to any 'MonadIO'.
+-- | Generalizes @System.IO.'SIO.getChar' to any 'MonadIO'@.
 getChar ∷ MonadIO m ⇒ m Char
 getChar = liftIO SIO.getChar
 
--- | Generalizes @System.IO.@'SIO.getLine' to any 'MonadIO'.
+-- | Generalizes @System.IO.'SIO.getLine' to any 'MonadIO'@.
 getLine ∷ MonadIO m ⇒ m String
 getLine = liftIO SIO.getLine
 
--- | Generalizes @System.IO.@'SIO.getContents' to any 'MonadIO'.
+-- | Generalizes @System.IO.'SIO.getContents' to any 'MonadIO'@.
 getContents ∷ MonadIO m ⇒ m String
 getContents = liftIO SIO.getContents
 
--- | Generalizes @System.IO.@'SIO.readIO' to any 'MonadIO'.
+-- | Generalizes @System.IO.'SIO.readIO' to any 'MonadIO'@.
 readIO ∷ (MonadIO m, Read α) ⇒ String → m α
 readIO s = liftIO $ SIO.readIO s
 
--- | Generalizes @System.IO.@'SIO.readLn' to any 'MonadIO'.
+-- | Generalizes @System.IO.'SIO.readLn' to any 'MonadIO'@.
 readLn ∷ (MonadIO m, Read α) ⇒ m α
 readLn = liftIO SIO.readLn
 
@@ -701,9 +700,9 @@ readLn = liftIO SIO.readLn
 {-| A convenience function which opens a file in binary mode, applies the given
 continuation function to the resulting regional file handle and runs the
 resulting region. This provides a safer replacement for
-@System.IO.@'SIO.withBinaryFile'.
+@System.IO.'SIO.withBinaryFile'@.
 
-Note that: @withBinaryFile filePath ioMode =@ 'with' @$@ 'File' @True filePath ioMode@
+Note that: @withBinaryFile filePath ioMode = 'with' $ 'File' True filePath ioMode@.
 -}
 withBinaryFile ∷ MonadCatchIO pr
                ⇒ FilePath
@@ -716,9 +715,9 @@ withBinaryFile filePath ioMode = with $ File True filePath ioMode
 
 -- | Convenience function whichs opens a file in binary mode yielding a regional
 -- handle to it. This provides a safer replacement for
--- @System.IO.@'SIO.openBinaryFile'.
+-- @System.IO.'SIO.openBinaryFile'@.
 --
--- Note that: @openBinaryFile filePath ioMode =@ 'open' @$@ 'File' @True filePath ioMode@
+-- Note that: @openBinaryFile filePath ioMode = 'open' $ 'File' True filePath ioMode@.
 openBinaryFile ∷ MonadCatchIO pr
                ⇒ FilePath
                → IOMode ioMode
@@ -726,28 +725,28 @@ openBinaryFile ∷ MonadCatchIO pr
                          (RegionalFileHandle ioMode (RegionT s pr))
 openBinaryFile filePath ioMode = open $ File True filePath ioMode
 
--- | Wraps @System.IO.@'SIO.hSetBinaryMode'.
+-- | Wraps @System.IO.'SIO.hSetBinaryMode'@.
 hSetBinaryMode ∷ (pr `ParentOf` cr, MonadIO cr)
                ⇒ RegionalFileHandle ioMode pr → Bool → cr ()
 hSetBinaryMode = wrap2 E.hSetBinaryMode
 
--- | Wraps @System.IO.@'SIO.hPutBuf'.
+-- | Wraps @System.IO.'SIO.hPutBuf'@.
 hPutBuf ∷ (pr `ParentOf` cr, MonadIO cr, WriteModes ioMode)
         ⇒ RegionalFileHandle ioMode pr → Ptr α → Int → cr ()
 hPutBuf = wrap3 E.hPutBuf
 
--- | Wraps @System.IO.@'SIO.hGetBuf'.
+-- | Wraps @System.IO.'SIO.hGetBuf'@.
 hGetBuf ∷ (pr `ParentOf` cr, MonadIO cr, ReadModes ioMode)
         ⇒ RegionalFileHandle ioMode pr → Ptr α → Int → cr Int
 hGetBuf = wrap3 E.hGetBuf
 
 #if !defined(__NHC__) && !defined(__HUGS__)
--- | Wraps @System.IO.@'SIO.hPutBufNonBlocking'.
+-- | Wraps @System.IO.'SIO.hPutBufNonBlocking'@.
 hPutBufNonBlocking ∷ (pr `ParentOf` cr, MonadIO cr, WriteModes ioMode)
                    ⇒ RegionalFileHandle ioMode pr → Ptr α → Int → cr Int
 hPutBufNonBlocking = wrap3 E.hPutBufNonBlocking
 
--- | Wraps @System.IO.@'SIO.hGetBufNonBlocking'.
+-- | Wraps @System.IO.'SIO.hGetBufNonBlocking'@.
 hGetBufNonBlocking ∷ (pr `ParentOf` cr, MonadIO cr, ReadModes ioMode)
                    ⇒ RegionalFileHandle ioMode pr → Ptr α → Int → cr Int
 hGetBufNonBlocking = wrap3 E.hGetBufNonBlocking
@@ -774,7 +773,7 @@ genOpenTempFile binary filePath template = do
 
 -- | Open a temporary file yielding a regional handle to it paired with the
 -- generated file path. This provides a safer replacement for
--- @System.IO.@'SIO.openTempFile'.
+-- @System.IO.'SIO.openTempFile'@.
 openTempFile ∷ MonadCatchIO pr
              ⇒ FilePath
              → Template
@@ -783,7 +782,7 @@ openTempFile = genOpenTempFile False
 
 -- | Open a temporary file in binary mode yielding a regional handle to it
 -- paired with the generated file path. This provides a safer replacement for
--- @System.IO.@'SIO.openBinaryTempFile'.
+-- @System.IO.'SIO.openBinaryTempFile'@.
 openBinaryTempFile ∷
     MonadCatchIO pr
   ⇒ FilePath
@@ -807,7 +806,7 @@ genOpenTempFileWithDefaultPermissions binary filePath template = do
 
 -- | Open a temporary file with default permissions yielding a regional handle
 -- to it paired with the generated file path. This provides a safer replacement
--- for @System.IO.@'SIO.openTempFileWithDefaultPermissions'.
+-- for @System.IO.'SIO.openTempFileWithDefaultPermissions'@.
 openTempFileWithDefaultPermissions ∷
     MonadCatchIO pr
   ⇒ FilePath
@@ -818,7 +817,7 @@ openTempFileWithDefaultPermissions = genOpenTempFileWithDefaultPermissions False
 -- | Open a temporary file in binary mode with default permissions yielding a
 -- regional handle to it paired with the generated file path. This provides a
 -- safer replacement for
--- @System.IO.@'SIO.openBinaryTempFileWithDefaultPermissions'.
+-- @System.IO.'SIO.openBinaryTempFileWithDefaultPermissions'@.
 openBinaryTempFileWithDefaultPermissions ∷
     MonadCatchIO pr
   ⇒ FilePath
@@ -833,17 +832,17 @@ openBinaryTempFileWithDefaultPermissions = genOpenTempFileWithDefaultPermissions
 -- * Unicode encoding/decoding
 --------------------------------------------------------------------------------
 
--- | Wraps @System.IO.@'SIO.hSetEncoding'.
+-- | Wraps @System.IO.'SIO.hSetEncoding'@.
 hSetEncoding ∷ (pr `ParentOf` cr, MonadIO cr)
              ⇒ RegionalFileHandle ioMode pr → TextEncoding → cr ()
 hSetEncoding = wrap2 E.hSetEncoding
 
--- | Wraps @System.IO.@'SIO.hGetEncoding'.
+-- | Wraps @System.IO.'SIO.hGetEncoding'@.
 hGetEncoding ∷ (pr `ParentOf` cr, MonadIO cr)
              ⇒ RegionalFileHandle ioMode pr → cr (Maybe TextEncoding)
 hGetEncoding = wrap E.hGetEncoding
 
--- | Generalizes @System.IO.@'SIO.mkTextEncoding' to any 'MonadIO'.
+-- | Generalizes @System.IO.'SIO.mkTextEncoding' to any 'MonadIO'@.
 mkTextEncoding ∷ MonadIO m ⇒ String → m TextEncoding
 mkTextEncoding = liftIO ∘ E.mkTextEncoding
 
@@ -852,7 +851,7 @@ mkTextEncoding = liftIO ∘ E.mkTextEncoding
 -- * Newline conversion
 --------------------------------------------------------------------------------
 
--- | Wraps @System.IO.@'SIO.hSetNewlineMode'.
+-- | Wraps @System.IO.'SIO.hSetNewlineMode'@.
 hSetNewlineMode ∷ (pr `ParentOf` cr, MonadIO cr)
                 ⇒ RegionalFileHandle ioMode pr → NewlineMode → cr ()
 hSetNewlineMode = wrap2 E.hSetNewlineMode
