@@ -56,8 +56,10 @@ import qualified System.IO.ExplicitIOModes as E
                                  , openBinaryFile
                                  , openTempFile
                                  , openBinaryTempFile
+#if MIN_VERSION_base(4,2,0)
                                  , openTempFileWithDefaultPermissions
                                  , openBinaryTempFileWithDefaultPermissions
+#endif
                                  , hClose
                                  )
 
