@@ -34,13 +34,10 @@ import Data.Function.Unicode ( (∘) )
 import Control.Monad.Trans ( MonadIO, liftIO )
 
 -- from regions:
+import           Control.Resource        ( Resource, openResource, closeResource )
+import qualified Control.Resource as R   ( Handle )
 import Control.Monad.Trans.Region        ( RegionalHandle )
-import Control.Monad.Trans.Region.Unsafe ( Resource
-                                         , openResource
-                                         , closeResource
-                                         , internalHandle
-                                         )
-import qualified Control.Monad.Trans.Region.Unsafe as R ( Handle )
+import Control.Monad.Trans.Region.Unsafe ( internalHandle )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( IOMode(..)
