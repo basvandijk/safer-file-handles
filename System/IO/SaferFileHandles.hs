@@ -254,6 +254,10 @@ import Control.Monad.Trans ( MonadIO, liftIO )
 import Control.Monad.Trans.Region -- (re-exported entirely)
 import Control.Monad.Trans.Region.Unsafe ( internalHandle )
 
+#ifdef __HADDOCK__
+import Control.Resource ( Resource )
+#endif
+
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( IOMode(..)
                                  , R, W, A, RW

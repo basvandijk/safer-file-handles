@@ -61,8 +61,8 @@ import qualified System.IO.ExplicitIOModes as E
 -- * Files with explicit IO modes as scarce resources
 -------------------------------------------------------------------------------
 
-{-| A file scarce resource parameterized by the IOMode in which you want to open
-the file.
+{-| A file scarce resource parameterized by the 'IOMode' in which you want to
+open the file.
 
 Note that this module provides an instance for 'Resource' for 'File'
 @ioMode@. This allows you to 'open' files in a region which are automatically
@@ -122,7 +122,7 @@ instance Resource (File ioMode) where
     closeResource = sanitizeIOError ∘ E.hClose ∘ handle
 
 -- | A handy type synonym for a regional handle to an opened file parameterized
--- by the IOMode in which you opened the file and the region in which it was
+-- by the 'IOMode' in which you opened the file and the region in which it was
 -- created.
 type RegionalFileHandle ioMode r = RegionalHandle (File ioMode) r
 
