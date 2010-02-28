@@ -20,7 +20,6 @@ module System.IO.SaferFileHandles.Internal where
 
 -- from base:
 import Control.Applicative ( (<$>) )
-import Control.Monad       ( return )
 import Data.Function       ( ($) )
 import Data.Tuple          ( uncurry )
 import Data.Bool           ( Bool(False, True) )
@@ -42,15 +41,10 @@ import Control.Monad.Trans.Region        ( RegionalHandle )
 import Control.Monad.Trans.Region.Unsafe ( internalHandle )
 
 -- from explicit-iomodes
-import System.IO.ExplicitIOModes ( IOMode(..)
-                                 , R, W, RW
-                                 , IO
-                                 , FilePath
-                                 )
+import System.IO.ExplicitIOModes ( IOMode(..), RW, IO, FilePath )
 
 import qualified System.IO.ExplicitIOModes as E
                                  ( Handle
-                                 , stdin, stdout, stderr
                                  , openFile
                                  , openBinaryFile
                                  , openTempFile
@@ -85,9 +79,6 @@ data File ioMode where
 #endif
              → File RW
 
-          -- TODO: I need to review the handling of standard files:
-    Std ∷ Standard ioMode → File ioMode
-
 -- | Should the file be opened in binary mode?
 type Binary = Bool
 
@@ -98,20 +89,6 @@ type Template = String
 -- | Should default permissions be used when opening a temporary file?
 type DefaultPermissions = Bool
 #endif
-
--- | The standard files parameterized by concrete IOModes which work for the
--- majority of cases.
-data Standard ioMode where
-    In  ∷ Standard R
-    Out ∷ Standard W
-    Err ∷ Standard W
-
--- | Internally used function to convert a standard file to the corresponding
--- handle.
-stdHndl ∷ Standard ioMode → E.Handle ioMode
-stdHndl In  = E.stdin
-stdHndl Out = E.stdout
-stdHndl Err = E.stderr
 
 instance Resource (File ioMode) where
     data R.Handle (File ioMode) =
@@ -142,9 +119,6 @@ instance Resource (File ioMode) where
             (if isBinary then E.openBinaryTempFile else E.openTempFile)
             filePath template
 #endif
-    -- TODO: I need to review the handling of standard files:
-    openResource (Std std) = return $ FileHandle Nothing $ stdHndl std
-
     closeResource = sanitizeIOError ∘ E.hClose ∘ handle
 
 -- | A handy type synonym for a regional handle to an opened file parameterized

@@ -48,13 +48,7 @@
 --
 -- @darcs get <http://code.haskell.org/~basvandijk/code/safer-file-handles-examples>@
 --
--- Note that this package is early work and still very experimental. Take note
--- of the following warnings:
---
--- * /WARNING:/ Currenly the handling of the standard files ('stdin', 'stdout' and
--- 'stderr') is not to my liking. See the documentation for details.
---
--- * /NOTE:/ This module also provides functions from @System.IO@ which don't
+-- /NOTE:/ This module also provides functions from @System.IO@ which don't
 -- directly work with file handles like 'putStrLn' or 'getLine' for
 -- example. These functions implicitly use the standard handles. I actually
 -- provide more general versions of these that work in any 'MonadIO'. It could
@@ -69,7 +63,6 @@ module System.IO.SaferFileHandles
     ( -- * Files with explicit IO modes as scarce resources
       File(..)
     , Binary
-    , Standard(..)
 
     , FilePath
 
@@ -99,13 +92,6 @@ module System.IO.SaferFileHandles
     , openFile, withFile
 
     , IOMode(..)
-
-      -- ** Standard handles
-      -- $stdHndls
-
-    , stdin, stdout, stderr
-
-      -- $TODO_cast
 
       -- *  Operations on regional file handles
       -- ** Determining and changing the size of a file
@@ -349,100 +335,6 @@ withFile ∷ MonadCatchIO pr
            )
          → pr α
 withFile filePath ioMode = with $ File False filePath ioMode
-
-
--- ** Standard handles
-
-{- $stdHndls
-
-/WARNING:/ I'm not satisfied with my current implementation of the standard
-handles ('stdin', 'stdout' and 'stderr')! Currently the standard handles are
-regional computations that return the regional file handles to the respected
-standard handles. There are 4 problems with this approach:
-
-* When the region terminates in which you call one of the standard handles the
-respected handle will be closed. I think this is not the expected behaviour. I
-would expect the standard handles to always remain open.
-
-* In 'System.IO' the standard handles are pure values. My standard handles are
-monadic computations which makes them harder to work with.
-
-* There is no way to explicitly close a standard handle. Indeed, the whole
-purpose of lightweight monadic regions is to automatically close
-handles. However, when writing a Unix daemon for example, you need to be able to
-explicitly close the standard handles.
-
-* When reading 'man stdin' I'm confused if the standard handles are /always/
-open on program startup:
-
-quote 'man stdin':
-
-\".../Under normal circumstances/ every Unix program has three streams opened for
-it when it starts up, one for input, one for output, and one for printing
-diagnostic or error messages...\"
-
-\"...The stdin, stdout, and stderr macros conform to C89 and this standard also
-stipulates that these three streams /shall be open/ at program startup....\"
-
-So now I'm confused... are these standard file handles always open on program
-startup or are there /abnormal/ situations when they are closed?
-
-Maybe I just have to believe the documentation in @System.IO@ which specifies
-that they are always initially open.
-
-If the standard handles are closed on startup using a handle returned from one
-of the standard handles will result in an exception! This would be a violation
-of my safety guarantees which is unacceptable.
-
-Does anyone have a solution?
--}
-
--- TODO: I need to review these:
-
--- | Convenience function for returning a regional handle to standard
--- input. This provides a safer replacement for @System.IO.'SIO.stdin'@.
---
--- Note that: @stdin = 'open' $ 'Std' 'In'@.
-stdin ∷ MonadCatchIO pr
-      ⇒ RegionT s pr (RegionalFileHandle R (RegionT s pr))
-stdin = open $ Std In
-
--- | Convenience function for returning a regional handle to standard
--- output. This provides a safer replacement for @System.IO.'SIO.stdout'@.
---
--- Note that: @stdin = 'open' $ 'Std' 'Out'@.
-stdout ∷ MonadCatchIO pr
-       ⇒ RegionT s pr (RegionalFileHandle W (RegionT s pr))
-stdout = open $ Std Out
-
--- | Convenience function for returning a regional handle to standard
--- error. This provides a safer replacement for @System.IO.'SIO.stderr'@.
---
--- Note that: @stdin = 'open' $ 'Std' 'Err'@.
-stderr ∷ MonadCatchIO pr
-       ⇒ RegionT s pr (RegionalFileHandle W (RegionT s pr))
-stderr = open $ Std Err
-
-{- $TODO_cast
-
-/TODO:/
-
-The standard handles have concrete IOModes by default which work for the
-majority of cases. In the rare occasion that you know these handles have
-different IOModes you should be able to 'cast' them to the expected IOMode.
-
-The @explicit-iomodes@ package defines this @cast@ function. I should also
-define it here:
-
-@
-cast :: forall anyIOMode castedIOMode
-     . (pr \`ParentOf\` cr, LiftIO cr, CheckMode castedIOMode)
-     => RegionalFileHandle anyIOMode pr
-     -> cr (Maybe (RegionalFileHandle castedIOMode pr))
-@
-
-However I'm not sure yet how to implement it...
--}
 
 
 -------------------------------------------------------------------------------
