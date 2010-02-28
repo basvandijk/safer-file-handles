@@ -105,7 +105,7 @@ instance Resource (File ioMode) where
             filePath ioMode
 
 #if MIN_VERSION_base(4,2,0)
-    openResource (TempFile isBinary filePath template defaultPerms) = do
+    openResource (TempFile isBinary filePath template defaultPerms) =
         uncurry (FileHandle ∘ Just) <$>
              (case (isBinary, defaultPerms) of
                (False, False) → E.openTempFile
@@ -114,7 +114,7 @@ instance Resource (File ioMode) where
                (True,  True)  → E.openBinaryTempFileWithDefaultPermissions
              ) filePath template
 #else
-    openResource (TempFile isBinary filePath template) = do
+    openResource (TempFile isBinary filePath template) =
         uncurry (FileHandle ∘ Just) <$>
             (if isBinary then E.openBinaryTempFile else E.openTempFile)
             filePath template
