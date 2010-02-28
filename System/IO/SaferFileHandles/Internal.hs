@@ -4,7 +4,6 @@
            , GADTs
            , TypeFamilies
            , RankNTypes
-           , ViewPatterns
            , MultiParamTypeClasses
   #-}
 
@@ -20,12 +19,15 @@
 module System.IO.SaferFileHandles.Internal where
 
 -- from base:
-import Control.Monad ( fmap , return )
-import Data.Function ( ($) )
-import Data.Tuple    ( uncurry )
-import Data.Bool     ( Bool(False, True) )
-import Data.Char     ( String )
-import Data.Maybe    ( Maybe(Nothing, Just) )
+import Control.Applicative ( (<$>) )
+import Control.Monad       ( return )
+import Data.Function       ( ($) )
+import Data.Tuple          ( uncurry )
+import Data.Bool           ( Bool(False, True) )
+import Data.Char           ( String )
+import Data.Maybe          ( Maybe(Nothing, Just) )
+import System.IO.Error     ( modifyIOError )
+import GHC.IO.Exception    ( ioe_handle )
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode ( (∘) )
@@ -112,21 +114,22 @@ stdHndl Out = E.stdout
 stdHndl Err = E.stderr
 
 instance Resource (File ioMode) where
-    data R.Handle (File ioMode) = FileHandle (Maybe FilePath)
-                                    -- The optional file path is needed
-                                    -- because opening a temporary file
-                                    -- also yields the generated file
-                                    -- path.
-                                    (E.Handle ioMode)
+    data R.Handle (File ioMode) =
+        FileHandle { mbFilePath ∷ Maybe FilePath
+                     -- ^ Get the optional file path. This is needed because
+                     -- opening a temporary file also yields the generated file
+                     -- path.
+                   , handle ∷ E.Handle ioMode
+                   }
 
     openResource (File isBinary filePath ioMode) =
-        fmap (FileHandle Nothing) $
-             (if isBinary then E.openBinaryFile else E.openFile)
-             filePath ioMode
+        FileHandle Nothing <$>
+            (if isBinary then E.openBinaryFile else E.openFile)
+            filePath ioMode
 
 #if MIN_VERSION_base(4,2,0)
     openResource (TempFile isBinary filePath template defaultPerms) = do
-        fmap (uncurry (FileHandle ∘ Just)) $
+        uncurry (FileHandle ∘ Just) <$>
              (case (isBinary, defaultPerms) of
                (False, False) → E.openTempFile
                (True,  False) → E.openBinaryTempFile
@@ -135,14 +138,14 @@ instance Resource (File ioMode) where
              ) filePath template
 #else
     openResource (TempFile isBinary filePath template) = do
-        fmap (uncurry (FileHandle ∘ Just)) $
-             (if isBinary then E.openBinaryTempFile else E.openTempFile)
-             filePath template
+        uncurry (FileHandle ∘ Just) <$>
+            (if isBinary then E.openBinaryTempFile else E.openTempFile)
+            filePath template
 #endif
     -- TODO: I need to review the handling of standard files:
     openResource (Std std) = return $ FileHandle Nothing $ stdHndl std
 
-    closeResource (FileHandle _ h) = E.hClose h
+    closeResource = sanitizeIOError ∘ E.hClose ∘ handle
 
 -- | A handy type synonym for a regional handle to an opened file parameterized
 -- by the IOMode in which you opened the file and the region in which it was
@@ -155,22 +158,25 @@ type RegionalFileHandle ioMode r = RegionalHandle (File ioMode) r
 --------------------------------------------------------------------------------
 
 regularHandle ∷ RegionalFileHandle ioMode r → E.Handle ioMode
-regularHandle (internalHandle → FileHandle _ h) = h
+regularHandle = handle ∘ internalHandle
 
 wrap ∷ MonadIO m
      ⇒ (E.Handle ioMode → IO α)
      → (RegionalFileHandle ioMode r → m α)
-wrap f = \h → liftIO $ f (regularHandle h)
+wrap f = \h → liftIO $ sanitizeIOError $ f (regularHandle h)
 
 wrap2 ∷ MonadIO m
       ⇒ (E.Handle ioMode → β → IO α)
       → (RegionalFileHandle ioMode r → β → m α)
-wrap2 f = \h y → liftIO $ f (regularHandle h) y
+wrap2 f = \h y → liftIO $ sanitizeIOError $ f (regularHandle h) y
 
 wrap3 ∷ MonadIO m
       ⇒ (E.Handle ioMode → γ → β → IO α)
       → (RegionalFileHandle ioMode r → γ → β → m α)
-wrap3 f = \h z y → liftIO $ f (regularHandle h) z y
+wrap3 f = \h z y → liftIO $ sanitizeIOError $ f (regularHandle h) z y
+
+sanitizeIOError ∷ IO α → IO α
+sanitizeIOError = modifyIOError $ \e -> e { ioe_handle = Nothing }
 
 
 -- The End ---------------------------------------------------------------------

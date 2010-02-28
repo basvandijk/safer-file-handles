@@ -4,7 +4,6 @@
            , GADTs
            , TypeFamilies
            , RankNTypes
-           , ViewPatterns
            , MultiParamTypeClasses
   #-}
 
@@ -51,19 +50,6 @@
 --
 -- Note that this package is early work and still very experimental. Take note
 -- of the following warnings:
---
--- * /WARNING:/ You are able to lift an arbitrary @IO@ action into a region. This
--- action may throw an @IOError@ which may contain a low-level handle to a
--- file. This handle can be retrieved from the @IOError@ using @ioeGetHandle@
--- from @System.IO.Error@.  So when an @IOError@ is thrown you will be able to
--- manually close the respected file! This will defeat the safety-guarantees
--- that this package promises to provide. /TODO: Think about how to solve this.../
--- The solution that Oleg provides in his paper is to filter out the low-level
--- handle in an @IOError@ when it's thrown. I can't easily do this because I have
--- to modify the @catch@ method of the 'MonadCatchIO' instance for 'RegionT' in
--- the @regions@ package. It feels like an ugly hack to solve this
--- @safer-file-handles@ specific problem in the independent general @regions@
--- package.
 --
 -- * /WARNING:/ Currenly the handling of the standard files ('stdin', 'stdout' and
 -- 'stderr') is not to my liking. See the documentation for details.
@@ -262,7 +248,7 @@ import Data.Function ( ($) )
 import Data.Bool     ( Bool(False, True) )
 import Data.Char     ( Char, String )
 import Data.Int      ( Int )
-import Data.Maybe    ( Maybe(Just) )
+import Data.Maybe    ( Maybe, fromJust )
 import Text.Show     ( Show )
 import Text.Read     ( Read )
 import Foreign.Ptr   ( Ptr )
@@ -763,13 +749,14 @@ genOpenTempFile ∷ MonadCatchIO pr
                 → Template
                 → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
 genOpenTempFile binary filePath template = do
-  rh@(internalHandle → FileHandle (Just fp) _) ← open $ TempFile binary
-                                                                 filePath
-                                                                 template
+  rh ← open $ TempFile binary filePath template
 #if MIN_VERSION_base(4,2,0)
-                                                                 False
+                       False
 #endif
-  return (fp, rh)
+  return (generatedFilePath rh, rh)
+
+generatedFilePath ∷ RegionalFileHandle ioMode r → FilePath
+generatedFilePath = fromJust ∘ mbFilePath ∘ internalHandle
 
 -- | Open a temporary file yielding a regional handle to it paired with the
 -- generated file path. This provides a safer replacement for
@@ -798,11 +785,8 @@ genOpenTempFileWithDefaultPermissions ∷
   → Template
   → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
 genOpenTempFileWithDefaultPermissions binary filePath template = do
-  rh@(internalHandle → FileHandle (Just fp) _) ← open $ TempFile binary
-                                                                 filePath
-                                                                 template
-                                                                 True
-  return (fp, rh)
+  rh ← open $ TempFile binary filePath template True
+  return (generatedFilePath rh, rh)
 
 -- | Open a temporary file with default permissions yielding a regional handle
 -- to it paired with the generated file path. This provides a safer replacement
