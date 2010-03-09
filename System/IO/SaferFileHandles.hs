@@ -63,11 +63,16 @@ module System.IO.SaferFileHandles
     ( -- * Files with explicit IO modes as scarce resources
       File(..)
     , Binary
-
     , FilePath
+    , Template
+#if MIN_VERSION_base(4,2,0)
+    , DefaultPermissions
+#endif
 
       -- ** IO Modes
       -- | Types that represent the IOMode an opened file can be in.
+    , IOMode(..)
+
     , R, W, A, RW
 
     , ReadModes, WriteModes
@@ -90,8 +95,6 @@ module System.IO.SaferFileHandles
     , RegionalFileHandle
 
     , openFile, withFile
-
-    , IOMode(..)
 
       -- *  Operations on regional file handles
       -- ** Determining and changing the size of a file
@@ -184,11 +187,6 @@ module System.IO.SaferFileHandles
 #endif
 
     -- * Temporary files
-#if MIN_VERSION_base(4,2,0)
-    , DefaultPermissions
-#endif
-    , Template
-
     , openTempFile
     , openBinaryTempFile
 
@@ -228,8 +226,7 @@ module System.IO.SaferFileHandles
 
 -- from base:
 import Prelude       ( Integer )
-import Control.Monad ( return, (>>=), fail
-                     )
+import Control.Monad ( return, (>>=), fail )
 import Data.Function ( ($) )
 import Data.Bool     ( Bool(False, True) )
 import Data.Char     ( Char, String )
@@ -263,7 +260,6 @@ import System.IO.ExplicitIOModes ( IOMode(..)
                                  , R, W, A, RW
                                  , ReadModes
                                  , WriteModes
-                                 -- TODO:, CheckMode
 
                                  , FilePath
                                  , BufferMode(..)
