@@ -289,16 +289,16 @@ import System.IO.ExplicitIOModes ( IOMode(..)
 import qualified System.IO.ExplicitIOModes as E
 
 -- from ourselves:
-import System.IO.SaferFileHandles.Internal
-
--- TODO: explicit import:
--- import System.IO.SaferFileHandles.Internal ( RegionalFileHandle
---                                            , File(..)
---                                            , Binary
---                                            , Template
---                                            , Standard(..)
---                                            , wrap, wrap2, wrap3
---                                            )
+import System.IO.SaferFileHandles.Internal ( RegionalFileHandle
+                                           , File(..)
+                                           , Binary
+                                           , Template
+#if MIN_VERSION_base(4,2,0)
+                                           , DefaultPermissions
+#endif
+                                           , mbFilePath
+                                           , wrap, wrap2, wrap3
+                                           )
 
 
 -------------------------------------------------------------------------------
