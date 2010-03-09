@@ -19,8 +19,8 @@
 module System.IO.SaferFileHandles.Internal where
 
 -- from base:
-import Control.Applicative ( (<$>) )
 import Data.Function       ( ($) )
+import Data.Functor        ( (<$>) )
 import Data.Tuple          ( uncurry )
 import Data.Bool           ( Bool(False, True) )
 import Data.Char           ( String )
@@ -150,7 +150,7 @@ wrap3 ∷ MonadIO m
 wrap3 f = \h z y → liftIO $ sanitizeIOError $ f (regularHandle h) z y
 
 sanitizeIOError ∷ IO α → IO α
-sanitizeIOError = modifyIOError $ \e -> e { ioe_handle = Nothing }
+sanitizeIOError = modifyIOError $ \e → e { ioe_handle = Nothing }
 
 
 -- The End ---------------------------------------------------------------------
