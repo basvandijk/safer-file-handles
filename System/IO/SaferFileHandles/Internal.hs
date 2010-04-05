@@ -3,7 +3,6 @@
            , CPP
            , GADTs
            , TypeFamilies
-           , RankNTypes
            , MultiParamTypeClasses
   #-}
 
