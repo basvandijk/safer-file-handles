@@ -9,7 +9,7 @@
 -------------------------------------------------------------------------------
 -- |
 -- Module      :  System.IO.Internal
--- Copyright   :  (c) 2009 Bas van Dijk
+-- Copyright   :  (c) 2010 Bas van Dijk
 -- License     :  BSD3 (see the file LICENSE)
 -- Maintainer  :  Bas van Dijk <v.dijk.bas@gmail.com>
 --
@@ -31,13 +31,16 @@ import GHC.IO.Exception    ( ioe_handle )
 import Data.Function.Unicode ( (∘) )
 
 -- from transformers:
-import Control.Monad.Trans ( MonadIO, liftIO )
+import Control.Monad.IO.Class ( MonadIO, liftIO )
 
 -- from regions:
-import           Control.Resource        ( Resource, openResource, closeResource )
-import qualified Control.Resource as R   ( Handle )
+import           Control.Resource        ( Resource, Handle, open, close )
 import Control.Monad.Trans.Region        ( RegionalHandle )
 import Control.Monad.Trans.Region.Unsafe ( internalHandle )
+
+#if __HADDOCK__
+import qualified Control.Monad.Trans.Region as Region ( open )
+#endif
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( IOMode(..), RW, IO, FilePath )
@@ -64,7 +67,7 @@ import qualified System.IO.ExplicitIOModes as E
 open the file.
 
 Note that this module provides an instance for 'Resource' for 'File'
-@ioMode@. This allows you to 'open' files in a region which are automatically
+@ioMode@. This allows you to 'Region.open' files in a region which are automatically
 closed when the region terminates but it disallows you to return handles to
 these closed files from the region so preventing I/O with closed files.
 -}
@@ -90,7 +93,7 @@ type DefaultPermissions = Bool
 #endif
 
 instance Resource (File ioMode) where
-    data R.Handle (File ioMode) =
+    data Handle (File ioMode) =
         FileHandle { mbFilePath ∷ Maybe FilePath
                      -- ^ Get the optional file path. This is needed because
                      -- opening a temporary file also yields the generated file
@@ -98,13 +101,13 @@ instance Resource (File ioMode) where
                    , handle ∷ E.Handle ioMode
                    }
 
-    openResource (File isBinary filePath ioMode) =
+    open (File isBinary filePath ioMode) =
         FileHandle Nothing <$>
             (if isBinary then E.openBinaryFile else E.openFile)
             filePath ioMode
 
 #if MIN_VERSION_base(4,2,0)
-    openResource (TempFile isBinary filePath template defaultPerms) =
+    open (TempFile isBinary filePath template defaultPerms) =
         uncurry (FileHandle ∘ Just) <$>
              (case (isBinary, defaultPerms) of
                (False, False) → E.openTempFile
@@ -113,12 +116,12 @@ instance Resource (File ioMode) where
                (True,  True)  → E.openBinaryTempFileWithDefaultPermissions
              ) filePath template
 #else
-    openResource (TempFile isBinary filePath template) =
+    open (TempFile isBinary filePath template) =
         uncurry (FileHandle ∘ Just) <$>
             (if isBinary then E.openBinaryTempFile else E.openTempFile)
             filePath template
 #endif
-    closeResource = sanitizeIOError ∘ E.hClose ∘ handle
+    close = sanitizeIOError ∘ E.hClose ∘ handle
 
 -- | A handy type synonym for a regional handle to an opened file parameterized
 -- by the 'IOMode' in which you opened the file and the region in which it was

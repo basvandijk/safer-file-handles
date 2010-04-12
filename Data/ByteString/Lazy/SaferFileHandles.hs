@@ -3,7 +3,7 @@
 -------------------------------------------------------------------------------
 -- |
 -- Module      :  Data.ByteString.SaferFileHandles
--- Copyright   :  (c) 2009 Bas van Dijk
+-- Copyright   :  (c) 2010 Bas van Dijk
 -- License     :  BSD3 (see the file LICENSE)
 -- Maintainer  :  Bas van Dijk <v.dijk.bas@gmail.com>
 --
@@ -28,7 +28,7 @@ module Data.ByteString.Lazy.SaferFileHandles
 import Data.Int ( Int )
 
 -- from transformers:
-import Control.Monad.Trans ( MonadIO )
+import Control.Monad.IO.Class ( MonadIO )
 
 -- from bytestring:
 import qualified Data.ByteString.Lazy as B

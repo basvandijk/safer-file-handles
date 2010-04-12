@@ -10,7 +10,7 @@
 -------------------------------------------------------------------------------
 -- |
 -- Module      :  System.IO.SaferFileHandles
--- Copyright   :  (c) 2009 Bas van Dijk
+-- Copyright   :  (c) 2010 Bas van Dijk
 -- License     :  BSD3 (see the file LICENSE)
 -- Maintainer  :  Bas van Dijk <v.dijk.bas@gmail.com>
 --
@@ -26,9 +26,9 @@
 -- which allows it to be used with the @regions@ package. The @regions@ package
 -- provides the region monad transformer 'RegionT'. Scarce resources, like files
 -- for example, can be opened in a region. When the region terminates, all
--- opened resources will be automatically closed. The main advantage of regions
+-- opened resources will be closed automatically. The main advantage of regions
 -- is that the handles to the opened resources can not be returned from the
--- region which ensures no I/O with closed resources is possible. The primary
+-- region. This ensures no I/O with closed resources is possible. The primary
 -- technique used in @regions@ is called \"Lightweight monadic regions\" which
 -- was invented by Oleg Kiselyov and Chung-chieh Shan. See:
 -- <http://okmij.org/ftp/Haskell/regions.html#light-weight>
@@ -245,7 +245,7 @@ import Data.Function.Unicode ( (∘) )
 import Control.Monad.CatchIO ( MonadCatchIO )
 
 -- from transformers:
-import Control.Monad.Trans ( MonadIO, liftIO )
+import Control.Monad.IO.Class ( MonadIO, liftIO )
 
 -- from regions:
 import Control.Monad.Trans.Region -- (re-exported entirely)
