@@ -73,9 +73,13 @@ module System.IO.SaferFileHandles
       -- | Types that represent the IOMode an opened file can be in.
     , IOMode(..)
 
-    , R, W, A, RW
+    , ReadMode
+    , WriteMode
+    , AppendMode
+    , ReadWriteMode
 
-    , ReadModes, WriteModes
+    , ReadModes
+    , WriteModes
 
       -- ** Opening files in a region
 
@@ -257,7 +261,12 @@ import Control.Resource ( Resource )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( IOMode(..)
-                                 , R, W, A, RW
+
+                                 , ReadMode
+                                 , WriteMode
+                                 , AppendMode
+                                 , ReadWriteMode
+
                                  , ReadModes
                                  , WriteModes
 
@@ -639,7 +648,9 @@ genOpenTempFile ∷ MonadCatchIO pr
                 ⇒ Binary
                 → FilePath
                 → Template
-                → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
+                → RegionT s pr ( FilePath
+                               , RegionalFileHandle ReadWriteMode (RegionT s pr)
+                               )
 genOpenTempFile binary filePath template = do
   rh ← open $ TempFile binary filePath template
 #if MIN_VERSION_base(4,2,0)
@@ -656,7 +667,9 @@ generatedFilePath = fromJust ∘ mbFilePath ∘ internalHandle
 openTempFile ∷ MonadCatchIO pr
              ⇒ FilePath
              → Template
-             → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
+             → RegionT s pr ( FilePath
+                            , RegionalFileHandle ReadWriteMode (RegionT s pr)
+                            )
 openTempFile = genOpenTempFile False
 
 -- | Open a temporary file in binary mode yielding a regional handle to it
@@ -666,7 +679,9 @@ openBinaryTempFile ∷
     MonadCatchIO pr
   ⇒ FilePath
   → Template
-  → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
+  → RegionT s pr ( FilePath
+                 , RegionalFileHandle ReadWriteMode (RegionT s pr)
+                 )
 openBinaryTempFile = genOpenTempFile True
 
 #if MIN_VERSION_base(4,2,0)
@@ -675,7 +690,9 @@ genOpenTempFileWithDefaultPermissions ∷
   ⇒ Binary
   → FilePath
   → Template
-  → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
+  → RegionT s pr ( FilePath
+                 , RegionalFileHandle ReadWriteMode (RegionT s pr)
+                 )
 genOpenTempFileWithDefaultPermissions binary filePath template = do
   rh ← open $ TempFile binary filePath template True
   return (generatedFilePath rh, rh)
@@ -687,7 +704,9 @@ openTempFileWithDefaultPermissions ∷
     MonadCatchIO pr
   ⇒ FilePath
   → Template
-  → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
+  → RegionT s pr ( FilePath
+                 , RegionalFileHandle ReadWriteMode (RegionT s pr)
+                 )
 openTempFileWithDefaultPermissions = genOpenTempFileWithDefaultPermissions False
 
 -- | Open a temporary file in binary mode with default permissions yielding a
@@ -698,7 +717,9 @@ openBinaryTempFileWithDefaultPermissions ∷
     MonadCatchIO pr
   ⇒ FilePath
   → Template
-  → RegionT s pr (FilePath, RegionalFileHandle RW (RegionT s pr))
+  → RegionT s pr ( FilePath
+                 , RegionalFileHandle ReadWriteMode (RegionT s pr)
+                 )
 openBinaryTempFileWithDefaultPermissions = genOpenTempFileWithDefaultPermissions True
 #endif
 

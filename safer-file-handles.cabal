@@ -1,5 +1,5 @@
 name:          safer-file-handles
-version:       0.4
+version:       0.5
 cabal-version: >=1.6
 build-type:    Custom
 license:       BSD3
@@ -51,7 +51,7 @@ Library
                , regions                   >= 0.5   && < 0.6
                , transformers              >= 0.2   && < 0.3
                , MonadCatchIO-transformers >= 0.2   && < 0.3
-               , explicit-iomodes          >= 0.2   && < 0.3
+               , explicit-iomodes          >= 0.3   && < 0.4
   exposed-modules: System.IO.SaferFileHandles
 
                    Data.ByteString.SaferFileHandles

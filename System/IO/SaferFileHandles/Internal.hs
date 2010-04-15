@@ -43,7 +43,7 @@ import qualified Control.Monad.Trans.Region as Region ( open )
 #endif
 
 -- from explicit-iomodes
-import System.IO.ExplicitIOModes ( IOMode(..), RW, IO, FilePath )
+import System.IO.ExplicitIOModes ( IOMode(..), ReadWriteMode, IO, FilePath )
 
 import qualified System.IO.ExplicitIOModes as E
                                  ( Handle
@@ -79,7 +79,7 @@ data File ioMode where
 #if MIN_VERSION_base(4,2,0)
              → DefaultPermissions
 #endif
-             → File RW
+             → File ReadWriteMode
 
 -- | Should the file be opened in binary mode?
 type Binary = Bool
