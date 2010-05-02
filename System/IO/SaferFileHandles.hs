@@ -1,10 +1,7 @@
 {-# LANGUAGE UnicodeSyntax
            , NoImplicitPrelude
            , CPP
-           , GADTs
-           , TypeFamilies
            , RankNTypes
-           , MultiParamTypeClasses
   #-}
 
 -------------------------------------------------------------------------------
