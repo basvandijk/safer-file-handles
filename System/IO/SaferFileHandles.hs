@@ -235,7 +235,7 @@ import Control.Monad.IO.Class ( MonadIO, liftIO )
 
 -- from regions:
 import Control.Monad.Trans.Region    -- ( re-exported entirely )
-import Control.Monad.Trans.Region.Close ( register )
+import Control.Monad.Trans.Region.Close ( onExit )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( IO
@@ -310,8 +310,7 @@ openNormal ∷ MonadCatchIO pr
                (RegionalFileHandle ioMode (RegionT s pr))
 openNormal open filePath ioMode = block $ do
   h ← liftIO $ open filePath ioMode
-  let closeAction = sanitizeIOError $ hClose h
-  ch ← register closeAction
+  ch ← onExit $ sanitizeIOError $ hClose h
   return $ RegionalFileHandle h ch
 
 {-| Convenience function which opens a file, applies the given continuation
@@ -629,8 +628,7 @@ openTemp ∷ MonadCatchIO pr
                         )
 openTemp open filePath template = block $ do
   (fp, h) ← liftIO $ open filePath template
-  let closeAction = sanitizeIOError $ hClose h
-  ch ← register closeAction
+  ch ← onExit $ sanitizeIOError $ hClose h
   return (fp, RegionalFileHandle h ch)
 
 -- | Open a temporary file yielding a regional handle to it paired with the
