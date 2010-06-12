@@ -27,8 +27,8 @@ import GHC.IO.Exception ( ioe_handle )
 import Control.Monad.IO.Class ( MonadIO, liftIO )
 
 -- from regions:
-import Control.Monad.Trans.Region       ( Dup(dup) )
-import Control.Monad.Trans.Region.Close ( CloseHandle )
+import Control.Monad.Trans.Region        ( Dup(dup) )
+import Control.Monad.Trans.Region.OnExit ( CloseHandle )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( Handle, IO )

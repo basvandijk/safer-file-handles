@@ -243,8 +243,8 @@ import Control.Monad.CatchIO ( MonadCatchIO, block )
 import Control.Monad.IO.Class ( MonadIO, liftIO )
 
 -- from regions:
-import Control.Monad.Trans.Region    -- ( re-exported entirely )
-import Control.Monad.Trans.Region.Close ( onExit )
+import Control.Monad.Trans.Region     -- ( re-exported entirely )
+import Control.Monad.Trans.Region.OnExit ( onExit )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( IO
