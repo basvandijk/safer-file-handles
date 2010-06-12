@@ -49,7 +49,7 @@
 -------------------------------------------------------------------------------
 
 module System.IO.SaferFileHandles
-    ( -- * Files with explicit IO modes as scarce resources
+    ( -- * Regional file handles
       RegionalFileHandle
 
       -- ** IO Modes
@@ -64,11 +64,19 @@ module System.IO.SaferFileHandles
     , ReadModes
     , WriteModes
 
+      -- ** Standard handles
+      {-| These standard handles have concrete IOModes by default which work
+      for the majority of cases. In the rare occasion that you know these
+      handles have different IOModes you can 'cast' them.
+      -}
+    , stdin, stdout, stderr
+    , cast
+
       -- ** Opening files in a region
     , FilePath
     , openFile, withFile
 
-      -- * Regions
+      -- ** Regions
       {-| Note that this module re-exports the @Control.Monad.Trans.Region@
       module from the @regions@ package which allows you to:
 
@@ -212,12 +220,13 @@ module System.IO.SaferFileHandles
 
 -- from base:
 import Prelude           ( Integer )
-import Control.Monad     ( return, (>>=), fail )
+import Control.Monad     ( return, (>>=), fail, liftM )
 import Data.Bool         ( Bool )
-import Data.Function     ( ($) )
+import Data.Function     ( ($), flip )
+import Data.Functor      ( fmap )
 import Data.Char         ( Char, String )
 import Data.Int          ( Int )
-import Data.Maybe        ( Maybe )
+import Data.Maybe        ( Maybe(Nothing, Just) )
 import Text.Show         ( Show )
 import Text.Read         ( Read )
 import Foreign.Ptr       ( Ptr )
@@ -250,6 +259,8 @@ import System.IO.ExplicitIOModes ( IO
                                  , ReadModes
                                  , WriteModes
 
+                                 , CheckMode
+
                                  , FilePath
                                  , BufferMode(..)
                                  , HandlePosn
@@ -281,7 +292,36 @@ import System.IO.SaferFileHandles.Internal ( RegionalFileHandle(RegionalFileHand
 
 
 -------------------------------------------------------------------------------
--- * Files with explicit IO modes as scarce resources
+-- ** Standard handles
+-------------------------------------------------------------------------------
+
+-- | Wraps: @System.IO.'SIO.stdin'@.
+stdin ∷ RegionalFileHandle ReadMode r
+stdin = RegionalFileHandle E.stdin Nothing
+
+-- | Wraps: @System.IO.'SIO.stdout'@.
+stdout ∷ RegionalFileHandle WriteMode r
+stdout = RegionalFileHandle E.stdout Nothing
+
+-- | Wraps: @System.IO.'SIO.stderr'@.
+stderr ∷ RegionalFileHandle WriteMode r
+stderr = RegionalFileHandle E.stderr Nothing
+
+{-| Cast the IOMode of a handle if the handle supports it.
+
+This function is primarily used in combination with the standard handles. When
+you know the IOMode of a handle is different from its default IOMode you can
+cast it to the right one.
+-}
+cast ∷ (pr `ParentOf` cr, MonadIO cr, CheckMode castedIOMode)
+     ⇒ RegionalFileHandle anyIOMode pr
+     → cr (Maybe (RegionalFileHandle castedIOMode pr))
+cast (RegionalFileHandle h mbCloseHndl) =
+    (liftM ∘ fmap) (flip RegionalFileHandle mbCloseHndl) $ liftIO $ E.cast h
+
+
+-------------------------------------------------------------------------------
+-- ** Opening files in a region
 -------------------------------------------------------------------------------
 
 {-| This functions opens a file then yields a regional handle to it. This
@@ -311,7 +351,7 @@ openNormal ∷ MonadCatchIO pr
 openNormal open filePath ioMode = block $ do
   h ← liftIO $ open filePath ioMode
   ch ← onExit $ sanitizeIOError $ hClose h
-  return $ RegionalFileHandle h ch
+  return $ RegionalFileHandle h $ Just ch
 
 {-| Convenience function which opens a file, applies the given continuation
 function to the resulting regional file handle and runs the resulting
@@ -629,7 +669,7 @@ openTemp ∷ MonadCatchIO pr
 openTemp open filePath template = block $ do
   (fp, h) ← liftIO $ open filePath template
   ch ← onExit $ sanitizeIOError $ hClose h
-  return (fp, RegionalFileHandle h ch)
+  return (fp, RegionalFileHandle h $ Just ch)
 
 -- | Open a temporary file yielding a regional handle to it paired with the
 -- generated file path. This provides a safer replacement for
