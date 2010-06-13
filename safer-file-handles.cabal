@@ -53,6 +53,7 @@ Library
                , MonadCatchIO-transformers >= 0.2   && < 0.3
                , explicit-iomodes          >= 0.3   && < 0.4
   exposed-modules: System.IO.SaferFileHandles
+                   System.IO.SaferFileHandles.Unsafe
 
                    Data.ByteString.SaferFileHandles
                    Data.ByteString.Char8.SaferFileHandles

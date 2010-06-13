@@ -6,31 +6,32 @@
 
 --------------------------------------------------------------------------------
 -- |
--- Module      :  System.IO.Internal
+-- Module      :  System.IO.SaferFileHandles.Internal
 -- Copyright   :  (c) 2010 Bas van Dijk
 -- License     :  BSD3 (see the file LICENSE)
 -- Maintainer  :  Bas van Dijk <v.dijk.bas@gmail.com>
 --
 --------------------------------------------------------------------------------
 
-module System.IO.SaferFileHandles.Internal where
+module System.IO.SaferFileHandles.Internal
+    ( RegionalFileHandle(RegionalFileHandle) ) where
+
+
+--------------------------------------------------------------------------------
+-- Imports
+--------------------------------------------------------------------------------
 
 -- from base:
 import Control.Monad                     ( return, (>>=), fail )
 import Data.Function                     ( ($) )
 import Data.Maybe                        ( Maybe(Nothing, Just) )
-import System.IO.Error                   ( modifyIOError )
-import GHC.IO.Exception                  ( ioe_handle )
-
--- from transformers:
-import Control.Monad.IO.Class            ( MonadIO, liftIO )
 
 -- from regions:
 import Control.Monad.Trans.Region        ( Dup(dup) )
 import Control.Monad.Trans.Region.OnExit ( CloseHandle )
 
 -- from explicit-iomodes
-import System.IO.ExplicitIOModes         ( Handle, IO )
+import System.IO.ExplicitIOModes         ( Handle )
 
 #ifdef __HADDOCK__
 import System.IO.ExplicitIOModes         ( IOMode )
@@ -51,32 +52,6 @@ instance Dup (RegionalFileHandle ioMode) where
     dup (RegionalFileHandle h (Just ch)) = do ch' ← dup ch
                                               return $ RegionalFileHandle h
                                                      $ Just ch'
-
-
---------------------------------------------------------------------------------
--- Utility wrapping functions
---------------------------------------------------------------------------------
-
-regularHandle ∷ RegionalFileHandle ioMode r → Handle ioMode
-regularHandle (RegionalFileHandle h _) = h
-
-wrap ∷ MonadIO m
-     ⇒ (Handle ioMode → IO α)
-     → (RegionalFileHandle ioMode r → m α)
-wrap f = \h → liftIO $ sanitizeIOError $ f (regularHandle h)
-
-wrap2 ∷ MonadIO m
-      ⇒ (Handle ioMode → β → IO α)
-      → (RegionalFileHandle ioMode r → β → m α)
-wrap2 f = \h y → liftIO $ sanitizeIOError $ f (regularHandle h) y
-
-wrap3 ∷ MonadIO m
-      ⇒ (Handle ioMode → γ → β → IO α)
-      → (RegionalFileHandle ioMode r → γ → β → m α)
-wrap3 f = \h z y → liftIO $ sanitizeIOError $ f (regularHandle h) z y
-
-sanitizeIOError ∷ IO α → IO α
-sanitizeIOError = modifyIOError $ \e → e { ioe_handle = Nothing }
 
 
 -- The End ---------------------------------------------------------------------

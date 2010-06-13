@@ -53,7 +53,7 @@ import qualified Data.ByteString.ExplicitIOModes as E ( hGetLine
 import System.IO.SaferFileHandles          ( RegionalFileHandle
                                            , ReadModes, WriteModes
                                            )
-import System.IO.SaferFileHandles.Internal ( wrap, wrap2 )
+import System.IO.SaferFileHandles.Unsafe   ( wrap, wrap2 )
 
 
 -------------------------------------------------------------------------------

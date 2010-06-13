@@ -49,7 +49,7 @@ import qualified Data.ByteString.Lazy.ExplicitIOModes as E ( hGetContents
 import System.IO.SaferFileHandles          ( RegionalFileHandle
                                            , ReadModes, WriteModes
                                            )
-import System.IO.SaferFileHandles.Internal ( wrap, wrap2 )
+import System.IO.SaferFileHandles.Unsafe   ( wrap, wrap2 )
 
 
 -------------------------------------------------------------------------------

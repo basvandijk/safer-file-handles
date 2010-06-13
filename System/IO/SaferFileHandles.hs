@@ -289,10 +289,8 @@ import System.IO.ExplicitIOModes ( IO
 import qualified System.IO.ExplicitIOModes as E
 
 -- from ourselves:
-import System.IO.SaferFileHandles.Internal ( RegionalFileHandle(RegionalFileHandle)
-                                           , wrap, wrap2, wrap3
-                                           , sanitizeIOError
-                                           )
+import System.IO.SaferFileHandles.Internal ( RegionalFileHandle(RegionalFileHandle) )
+import System.IO.SaferFileHandles.Unsafe   ( wrap, wrap2, wrap3, sanitizeIOError )
 
 
 -------------------------------------------------------------------------------
