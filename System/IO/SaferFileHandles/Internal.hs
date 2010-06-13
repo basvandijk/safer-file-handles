@@ -1,8 +1,7 @@
 {-# LANGUAGE UnicodeSyntax
            , NoImplicitPrelude
+           , KindSignatures
            , CPP
-           , GADTs
-           , TypeFamilies
   #-}
 
 --------------------------------------------------------------------------------
