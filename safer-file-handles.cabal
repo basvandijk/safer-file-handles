@@ -39,8 +39,8 @@ description:   This package adds two safety features on top of the regular
                .
                @darcs get <http://code.haskell.org/~basvandijk/code/safer-file-handles-examples>@
 	       .
-	       See the @safer-file-handles-bytestring@ package for @ByteString@
-	       operations on regional file handles.
+	       See the @safer-file-handles-bytestring/text@ package for
+	       @ByteString/Text@ operations on regional file handles.
 
 source-repository head
   Type:     darcs
