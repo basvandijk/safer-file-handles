@@ -55,6 +55,7 @@ module System.IO.SaferFileHandles
       -- ** IO Modes
       -- | Types that represent the IOMode an opened file can be in.
     , IOMode(..)
+    , MkIOMode(mkIOMode)
 
     , ReadMode
     , WriteMode
@@ -75,6 +76,9 @@ module System.IO.SaferFileHandles
       -- ** Opening files in a region
     , FilePath
     , openFile, withFile
+
+    -- *** Opening files by inferring the IOMode
+    , openFile', withFile'
 
       -- ** Regions
       {-| Note that this module re-exports the @Control.Monad.Trans.Region@
@@ -169,6 +173,10 @@ module System.IO.SaferFileHandles
     -- * Binary input and output
     , openBinaryFile, withBinaryFile
 
+    -- ** Opening binary files by inferring the IOMode
+    , openBinaryFile', withBinaryFile'
+
+    -- ** Operations on binary handles
     , hSetBinaryMode
     , hPutBuf
     , hGetBuf
@@ -254,6 +262,7 @@ import Control.Monad.Trans.Region.OnExit ( onExit )
 import System.IO.ExplicitIOModes ( IO
                                  , hClose
                                  , IOMode(..)
+                                 , MkIOMode(mkIOMode)
 
                                  , ReadMode
                                  , WriteMode
@@ -392,6 +401,25 @@ withFile ∷ MonadCatchIO pr
          → (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
          → pr α
 withFile filePath ioMode f = runRegionT $ openFile filePath ioMode >>= f
+
+-- *** Opening files by inferring the IOMode
+
+-- | Open a file without explicitly specifying the IOMode. The IOMode is
+-- inferred from the type of the resulting 'RegionalFileHandle'.
+--
+-- Note that: @openFile' fp = 'openFile' fp 'mkIOMode'@.
+openFile' ∷ (MonadCatchIO pr, MkIOMode ioMode)
+          ⇒ FilePath
+          → RegionT s pr
+              (RegionalFileHandle ioMode (RegionT s pr))
+openFile' filePath = openFile filePath mkIOMode
+
+-- | Note that: @withFile' filePath = 'withFile' filePath 'mkIOMode'@.
+withFile' ∷ (MonadCatchIO pr, MkIOMode ioMode)
+          ⇒ FilePath
+          → (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
+          → pr α
+withFile' filePath = withFile filePath mkIOMode
 
 
 -------------------------------------------------------------------------------
@@ -864,6 +892,24 @@ withBinaryFile ∷ MonadCatchIO pr
                →  (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
                → pr α
 withBinaryFile filePath ioMode f = runRegionT $ openBinaryFile filePath ioMode >>= f
+
+-- ** Opening binary files by inferring the IOMode
+
+-- | Note that: @openBinaryFile' filePath = 'openBinaryFile' filePath 'mkIOMode'@.
+openBinaryFile' ∷ (MonadCatchIO pr, MkIOMode ioMode)
+                ⇒ FilePath
+                → RegionT s pr
+                    (RegionalFileHandle ioMode (RegionT s pr))
+openBinaryFile' filePath = openBinaryFile filePath mkIOMode
+
+-- | Note that: @withBinaryFile' filePath = 'withBinaryFile' filePath 'mkIOMode'@.
+withBinaryFile' ∷ (MonadCatchIO pr, MkIOMode ioMode)
+                ⇒ FilePath
+                →  (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
+                → pr α
+withBinaryFile' filePath = withBinaryFile filePath mkIOMode
+
+-- ** Operations on binary handles
 
 -- | Select binary mode ('True') or text mode ('False') on a open handle.
 -- (See also 'openBinaryFile'.)
