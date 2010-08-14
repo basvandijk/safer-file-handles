@@ -27,10 +27,10 @@
 --
 -- * The final contribution of this module is that file handles are
 -- parameterised with the IOMode in which the file was opened. This can be
--- either 'R', 'W', 'A' or 'RW'. All operations on files explicitly specify the
--- needed IOMode using the 'ReadModes' and 'WriteModes' type classes. This way
--- it is impossible to read from a write-only handle or write to a read-only
--- handle for example.
+-- either 'ReadMode', 'WriteMode', 'AppendMode' or 'ReadWriteMode'. All
+-- operations on files explicitly specify the needed IOMode using the
+-- 'ReadModes' and 'WriteModes' type classes. This way it is impossible to read
+-- from a write-only handle or write to a read-only handle for example.
 --
 -- See the @safer-file-handles-examples@ package for examples how to use this
 -- package:
