@@ -54,9 +54,6 @@ module System.IO.SaferFileHandles
 
       -- ** IO Modes
       -- | Types that represent the IOMode an opened file can be in.
-    , IOMode(..)
-    , MkIOMode(mkIOMode)
-
     , ReadMode
     , WriteMode
     , AppendMode
@@ -64,6 +61,9 @@ module System.IO.SaferFileHandles
 
     , ReadModes
     , WriteModes
+
+    , IOMode(..)
+    , MkIOMode(mkIOMode)
 
       -- ** Standard handles
       {-| These standard handles have concrete IOModes by default which work
