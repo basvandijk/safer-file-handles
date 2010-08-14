@@ -1,0 +1,93 @@
+0.6.1
+
+(Released on: Sat Aug 14 09:20:55 UTC 2010)
+
+* Support explicit-iomodes-0.4.1
+  Added convenience functions:
+  withFile', openFile', withBinaryFile' and openBinaryFile'
+  that open files without explicitly specifying the IOMode.
+  Instead the IOMode is inferred from the type of the resulting handle
+
+
+0.6
+
+(Released on: Wed Jun 16 09:11:55 UTC 2010)
+
+* Depend on regions >= 0.6
+  (This actually changed the API)
+
+* Added the standard handles again. Now they work properly!
+
+* Renamed Control.Monad.Trans.Region.Close to Control.Monad.Trans.Region.OnExit
+
+* Added System.IO.SaferFileHandles.Unsafe
+
+* Moved the ByteString operations to their own package: safer-file-handles-bytestring
+
+
+0.5
+
+(Released on: Sun May 2 20:28:22 UTC 2010)
+
+* Updated dependencies
+  base-unicode-symbols      >= 0.1.1 && < 0.3
+  regions                   >= 0.5   && < 0.6
+  transformers              >= 0.2   && < 0.3
+  MonadCatchIO-transformers >= 0.2   && < 0.3
+
+* Updated dependency: explicit-iomodes >= 0.3 && < 0.4
+  (This actually changed the API)
+
+
+0.4
+
+(Released on: Sun Feb 28 13:00:23 UTC 2010)
+
+* Catch IOErrors and remove the internal handle from them
+
+* Removed support for the standard handles
+
+
+0.3.0.1
+
+(Released on: Thu Feb 4 10:20:34 UTC 2010)
+
+* Depend on more compatible versions of MonadCatchIO-transformers
+
+* Added more documentation
+
+* Conditional import of *withDefaultPermissions functions
+
+
+0.3
+
+(Released on: Sat Jan 23 14:25:55 UTC 2010)
+
+* Make File A GADT again and parameterize it with the IOMode
+
+* Added support for bytestring IO
+
+
+0.2.0.1
+
+(Released on: Thu Jan 7 22:55:00 UTC 2010)
+
+* Only import encoding and newline stuff from System.IO if base >= 4.2
+
+* Only use DefaultPermissions if base >= 4.2
+
+* Removed redundant #ifdef...#endif
+
+
+0.2
+
+(Released on: Thu Jan 7 14:19:15 UTC 2010)
+
+* Depend on regions-0.2
+
+
+0.1
+
+(Released on: Wed Jan 6 22:04:27 UTC 2010)
+
+* Initial release
