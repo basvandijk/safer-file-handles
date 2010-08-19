@@ -54,6 +54,7 @@ Library
                , transformers              >= 0.2   && < 0.3
                , MonadCatchIO-transformers >= 0.2   && < 0.3
                , explicit-iomodes          >= 0.5   && < 0.6
+               , pathtype                  >= 0.0.1 && < 0.6
   exposed-modules: System.IO.SaferFileHandles
                    System.IO.SaferFileHandles.Unsafe
   other-modules:   System.IO.SaferFileHandles.Internal

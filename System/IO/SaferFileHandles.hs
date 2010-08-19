@@ -74,7 +74,6 @@ module System.IO.SaferFileHandles
     , cast
 
       -- ** Opening files in a region
-    , FilePath
     , openFile, withFile
 
     -- *** Opening files by inferring the IOMode
@@ -274,7 +273,6 @@ import System.IO.ExplicitIOModes ( IO
 
                                  , CheckMode
 
-                                 , FilePath
                                  , BufferMode(..)
                                  , HandlePosn
                                  , SeekMode(..)
@@ -296,6 +294,13 @@ import System.IO.ExplicitIOModes ( IO
                                  )
 
 import qualified System.IO.ExplicitIOModes as E
+
+-- from pathtype:
+import System.Path ( DirPath, FilePath
+                   , AbsFile, RelFile
+                   , AbsRelClass
+                   , getPathString, asAbsFile
+                   )
 
 -- from ourselves:
 import System.IO.SaferFileHandles.Internal ( RegionalFileHandle(RegionalFileHandle) )
@@ -373,21 +378,22 @@ This operation may fail with:
 Note: if you will be working with files containing binary data, you'll want to
 be using 'openBinaryFile'.
 -}
-openFile ∷ MonadCatchIO pr
-         ⇒ FilePath
+openFile ∷ (MonadCatchIO pr, AbsRelClass ar)
+         ⇒ FilePath ar
          → IOMode ioMode
          → RegionT s pr
              (RegionalFileHandle ioMode (RegionT s pr))
 openFile = openNormal E.openFile
 
-openNormal ∷ MonadCatchIO pr
-           ⇒ (FilePath → IOMode ioMode → IO (E.Handle ioMode))
-           → FilePath
-           → IOMode ioMode
-           → RegionT s pr
-               (RegionalFileHandle ioMode (RegionT s pr))
-openNormal open filePath ioMode = block $ do
-  h ← liftIO $ open filePath ioMode
+openNormal ∷ (MonadCatchIO pr, AbsRelClass ar)
+           ⇒ (E.FilePath → IOMode ioMode → IO (E.Handle ioMode))
+           → ( FilePath ar
+             → IOMode ioMode
+             → RegionT s pr
+                 (RegionalFileHandle ioMode (RegionT s pr))
+             )
+openNormal open = \filePath ioMode → block $ do
+  h ← liftIO $ open (getPathString filePath) ioMode
   ch ← onExit $ sanitizeIOError $ hClose h
   return $ RegionalFileHandle h $ Just ch
 
@@ -395,8 +401,8 @@ openNormal open filePath ioMode = block $ do
 function to the resulting regional file handle and runs the resulting
 region. This provides a safer safer replacement for @System.IO.'SIO.withFile'@.
 -}
-withFile ∷ MonadCatchIO pr
-         ⇒ FilePath
+withFile ∷ (MonadCatchIO pr, AbsRelClass ar)
+         ⇒ FilePath ar
          → IOMode ioMode
          → (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
          → pr α
@@ -408,15 +414,15 @@ withFile filePath ioMode f = runRegionT $ openFile filePath ioMode >>= f
 -- inferred from the type of the resulting 'RegionalFileHandle'.
 --
 -- Note that: @openFile' fp = 'openFile' fp 'mkIOMode'@.
-openFile' ∷ (MonadCatchIO pr, MkIOMode ioMode)
-          ⇒ FilePath
+openFile' ∷ (MonadCatchIO pr, AbsRelClass ar, MkIOMode ioMode)
+          ⇒ FilePath ar
           → RegionT s pr
               (RegionalFileHandle ioMode (RegionT s pr))
 openFile' filePath = openFile filePath mkIOMode
 
 -- | Note that: @withFile' filePath = 'withFile' filePath 'mkIOMode'@.
-withFile' ∷ (MonadCatchIO pr, MkIOMode ioMode)
-          ⇒ FilePath
+withFile' ∷ (MonadCatchIO pr, AbsRelClass ar, MkIOMode ioMode)
+          ⇒ FilePath ar
           → (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
           → pr α
 withFile' filePath = withFile filePath mkIOMode
@@ -874,8 +880,8 @@ readLn = liftIO SIO.readLn
 -- characters.  (See also 'hSetBinaryMode'.)
 --
 -- This provides a safer replacement for @System.IO.'SIO.openBinaryFile'@.
-openBinaryFile ∷ MonadCatchIO pr
-               ⇒ FilePath
+openBinaryFile ∷ (MonadCatchIO pr, AbsRelClass ar)
+               ⇒ FilePath ar
                → IOMode ioMode
                → RegionT s pr
                    (RegionalFileHandle ioMode (RegionT s pr))
@@ -886,8 +892,8 @@ continuation function to the resulting regional file handle and runs the
 resulting region. This provides a safer replacement for
 @System.IO.'SIO.withBinaryFile'@.
 -}
-withBinaryFile ∷ MonadCatchIO pr
-               ⇒ FilePath
+withBinaryFile ∷ (MonadCatchIO pr, AbsRelClass ar)
+               ⇒ FilePath ar
                → IOMode ioMode
                →  (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
                → pr α
@@ -896,15 +902,15 @@ withBinaryFile filePath ioMode f = runRegionT $ openBinaryFile filePath ioMode >
 -- ** Opening binary files by inferring the IOMode
 
 -- | Note that: @openBinaryFile' filePath = 'openBinaryFile' filePath 'mkIOMode'@.
-openBinaryFile' ∷ (MonadCatchIO pr, MkIOMode ioMode)
-                ⇒ FilePath
+openBinaryFile' ∷ (MonadCatchIO pr, AbsRelClass ar, MkIOMode ioMode)
+                ⇒ FilePath ar
                 → RegionT s pr
                     (RegionalFileHandle ioMode (RegionT s pr))
 openBinaryFile' filePath = openBinaryFile filePath mkIOMode
 
 -- | Note that: @withBinaryFile' filePath = 'withBinaryFile' filePath 'mkIOMode'@.
-withBinaryFile' ∷ (MonadCatchIO pr, MkIOMode ioMode)
-                ⇒ FilePath
+withBinaryFile' ∷ (MonadCatchIO pr, AbsRelClass ar, MkIOMode ioMode)
+                ⇒ FilePath ar
                 →  (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
                 → pr α
 withBinaryFile' filePath = withBinaryFile filePath mkIOMode
@@ -1006,24 +1012,25 @@ hGetBufNonBlocking = wrap3 E.hGetBufNonBlocking
 --
 -- If the template is \"foo.ext\" then the created file will be \"fooXXX.ext\"
 -- where XXX is some random number.
-type Template = String
+type Template = RelFile
 
-openTemp ∷ MonadCatchIO pr
-         ⇒ (FilePath → Template → IO (FilePath, E.Handle ReadWriteMode))
-         → FilePath
-         → Template
-         → RegionT s pr ( FilePath
-                        , RegionalFileHandle ReadWriteMode (RegionT s pr)
-                        )
-openTemp open filePath template = block $ do
-  (fp, h) ← liftIO $ open filePath template
+openTemp ∷ (MonadCatchIO pr, AbsRelClass ar)
+         ⇒ (E.FilePath → String → IO (E.FilePath, E.Handle ReadWriteMode))
+         → ( DirPath ar
+           → Template
+           → RegionT s pr ( AbsFile
+                          , RegionalFileHandle ReadWriteMode (RegionT s pr)
+                          )
+           )
+openTemp open = \dirPath template → block $ do
+  (fp, h) ← liftIO $ open (getPathString dirPath) (getPathString template)
   ch ← onExit $ sanitizeIOError $ hClose h
-  return (fp, RegionalFileHandle h $ Just ch)
+  return (asAbsFile fp, RegionalFileHandle h $ Just ch)
 
 -- | The function creates a temporary file in 'ReadWriteMode'. The created file
 -- isn\'t deleted automatically, so you need to delete it manually.
 --
--- The file is creates with permissions such that only the current
+-- The file is created with permissions such that only the current
 -- user can read\/write it.
 --
 -- With some exceptions (see below), the file will be created securely in the
@@ -1035,10 +1042,10 @@ openTemp open filePath template = block $ do
 -- so if you rely on this behaviour it is best to use local filesystems only.
 --
 -- This provides a safer replacement for @System.IO.'SIO.openTempFile'@.
-openTempFile ∷ MonadCatchIO pr
-             ⇒ FilePath -- ^ Directory in which to create the file.
-             → Template -- ^ File name template.
-             → RegionT s pr ( FilePath
+openTempFile ∷ (MonadCatchIO pr, AbsRelClass ar)
+             ⇒ DirPath ar -- ^ Directory in which to create the file.
+             → Template   -- ^ File name template.
+             → RegionT s pr ( AbsFile
                             , RegionalFileHandle ReadWriteMode (RegionT s pr)
                             )
 openTempFile = openTemp E.openTempFile
@@ -1048,10 +1055,10 @@ openTempFile = openTemp E.openTempFile
 --
 -- This provides a safer replacement for @System.IO.'SIO.openBinaryTempFile'@.
 openBinaryTempFile ∷
-    MonadCatchIO pr
-  ⇒ FilePath
+    (MonadCatchIO pr, AbsRelClass ar)
+  ⇒ DirPath ar
   → Template
-  → RegionT s pr ( FilePath
+  → RegionT s pr ( AbsFile
                  , RegionalFileHandle ReadWriteMode (RegionT s pr)
                  )
 openBinaryTempFile = openTemp E.openBinaryTempFile
@@ -1062,10 +1069,10 @@ openBinaryTempFile = openTemp E.openBinaryTempFile
 -- This provides a safer replacement for
 -- @System.IO.'SIO.openTempFileWithDefaultPermissions'@.
 openTempFileWithDefaultPermissions ∷
-    MonadCatchIO pr
-  ⇒ FilePath
+    (MonadCatchIO pr, AbsRelClass ar)
+  ⇒ DirPath ar
   → Template
-  → RegionT s pr ( FilePath
+  → RegionT s pr ( AbsFile
                  , RegionalFileHandle ReadWriteMode (RegionT s pr)
                  )
 openTempFileWithDefaultPermissions = openTemp E.openTempFileWithDefaultPermissions
@@ -1075,10 +1082,10 @@ openTempFileWithDefaultPermissions = openTemp E.openTempFileWithDefaultPermissio
 -- This provides a safer replacement for
 -- @System.IO.'SIO.openBinaryTempFileWithDefaultPermissions'@.
 openBinaryTempFileWithDefaultPermissions ∷
-    MonadCatchIO pr
-  ⇒ FilePath
+    (MonadCatchIO pr, AbsRelClass ar)
+  ⇒ DirPath ar
   → Template
-  → RegionT s pr ( FilePath
+  → RegionT s pr ( AbsFile
                  , RegionalFileHandle ReadWriteMode (RegionT s pr)
                  )
 openBinaryTempFileWithDefaultPermissions = openTemp $ E.openBinaryTempFileWithDefaultPermissions
