@@ -53,7 +53,7 @@ Library
   GHC-Options: -Wall
   build-depends: base                      >= 4     && < 4.3
                , base-unicode-symbols      >= 0.1.1 && < 0.3
-               , regions                   >= 0.6   && < 0.7
+               , regions                   >= 0.6   && < 0.8
                , transformers              >= 0.2   && < 0.3
                , MonadCatchIO-transformers >= 0.2   && < 0.3
                , explicit-iomodes          >= 0.5   && < 0.6
