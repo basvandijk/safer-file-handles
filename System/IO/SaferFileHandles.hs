@@ -88,7 +88,7 @@ module System.IO.SaferFileHandles
 
       * Run a region using 'runRegionT'.
 
-      * Concurrently run a region inside another region using 'forkTopRegion'.
+      * Concurrently run a region inside another region using 'forkIOTopRegion'.
 
        * Duplicate a 'RegionalFileHandle' to a parent region using 'dup'.
       -}
