@@ -10,7 +10,7 @@ maintainer:    Bas van Dijk <v.dijk.bas@gmail.com>
 stability:     experimental
 category:      System, Monadic Regions
 synopsis:      Type-safe file handling
-description:   This package adds two safety features on top of the regular
+description:   This package adds three safety features on top of the regular
                @System.IO@ file handles and operations:
                .
                * Regional file handles. Files must be opened in a /region/. When
@@ -25,6 +25,9 @@ description:   This package adds two safety features on top of the regular
                  impossible to read from a write-only handle or write to a
                  read-only handle for example.
                .
+	       * Type-safe filepath creation and manipulation
+ 	         using the @pathtype@ package.
+	       .
                The primary technique used in this package is called \"Lightweight
                monadic regions\" which was invented by Oleg Kiselyov and
                Chung-chieh Shan. See:

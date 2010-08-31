@@ -25,6 +25,9 @@
 -- * Secondly this module provides all the file operations of @System.IO@ lifted
 -- to the region monad.
 --
+-- * Third, filepaths that are given to functions like 'openFile' are created
+-- and manipulated in a type-safe way using the @pathtype@ package.
+--
 -- * The final contribution of this module is that file handles are
 -- parameterised with the IOMode in which the file was opened. This can be
 -- either 'ReadMode', 'WriteMode', 'AppendMode' or 'ReadWriteMode'. All
