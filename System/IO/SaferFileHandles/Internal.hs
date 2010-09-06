@@ -45,7 +45,7 @@ import System.IO.ExplicitIOModes         ( IOMode )
 -- | A regional handle to an opened file parameterized by the 'IOMode' in which
 -- you opened the file and the region in which it was created.
 data RegionalFileHandle ioMode (r ∷ * → *) =
-    RegionalFileHandle (Handle ioMode) (Maybe (CloseHandle r))
+    RegionalFileHandle !(Handle ioMode) !(Maybe (CloseHandle r))
 
 instance Dup (RegionalFileHandle ioMode) where
     dup (RegionalFileHandle h Nothing)   = return $ RegionalFileHandle h Nothing
