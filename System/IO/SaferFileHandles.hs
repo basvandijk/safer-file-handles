@@ -262,9 +262,8 @@ import Control.Monad.Trans.Region.OnExit ( onExit )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( IO
-                                 , hClose
-                                 , IOMode(..)
-                                 , MkIOMode(mkIOMode)
+
+                                 , Handle
 
                                  , ReadMode
                                  , WriteMode
@@ -274,7 +273,12 @@ import System.IO.ExplicitIOModes ( IO
                                  , ReadModes
                                  , WriteModes
 
+                                 , IOMode(..)
+                                 , MkIOMode(mkIOMode)
+
                                  , CheckMode
+
+                                 , hClose
 
                                  , BufferMode(..)
                                  , HandlePosn
@@ -305,9 +309,16 @@ import System.Path ( DirPath, FilePath
                    , getPathString, asAbsFile
                    )
 
+-- from regional-pointers:
+import Foreign.Ptr.Region        ( RegionalPtr )
+import Foreign.Ptr.Region.Unsafe ( unsafePtr )
+
 -- from ourselves:
 import System.IO.SaferFileHandles.Internal ( RegionalFileHandle(RegionalFileHandle) )
-import System.IO.SaferFileHandles.Unsafe   ( wrap, wrap2, wrap3, sanitizeIOError )
+import System.IO.SaferFileHandles.Unsafe   ( unsafeHandle
+                                           , wrap, wrap2, wrap3
+                                           , sanitizeIOError
+                                           )
 
 
 -------------------------------------------------------------------------------
@@ -948,9 +959,21 @@ hSetBinaryMode = wrap2 E.hSetBinaryMode
 --    instead, whose default action is to terminate the program).
 --
 -- Wraps: @System.IO.'SIO.hPutBuf'@.
-hPutBuf ∷ (pr `ParentOf` cr, MonadIO cr, WriteModes ioMode)
-        ⇒ RegionalFileHandle ioMode pr → Ptr α → Int → cr ()
-hPutBuf = wrap3 E.hPutBuf
+hPutBuf ∷ ( pr1 `ParentOf` cr
+          , pr2 `ParentOf` cr
+          , MonadIO cr
+          , WriteModes ioMode
+          )
+        ⇒ RegionalFileHandle ioMode pr1
+        → RegionalPtr α pr2
+        → Int
+        → cr ()
+hPutBuf = wrapPtr E.hPutBuf
+
+wrapPtr ∷ MonadIO cr
+        ⇒ (Handle ioMode → Ptr α → Int → IO β)
+        → (RegionalFileHandle ioMode pr1 → RegionalPtr α pr2 → Int → cr β)
+wrapPtr f = \h ptr → liftIO ∘ f (unsafeHandle h) (unsafePtr ptr)
 
 -- | 'hGetBuf' @hdl buf count@ reads data from the handle @hdl@
 -- into the buffer @buf@ until either EOF is reached or
@@ -971,15 +994,29 @@ hPutBuf = wrap3 E.hPutBuf
 -- 'RegionalFileHandle', and reads bytes directly.
 --
 -- Wraps: @System.IO.'SIO.hGetBuf'@.
-hGetBuf ∷ (pr `ParentOf` cr, MonadIO cr, ReadModes ioMode)
-        ⇒ RegionalFileHandle ioMode pr → Ptr α → Int → cr Int
-hGetBuf = wrap3 E.hGetBuf
+hGetBuf ∷ ( pr1 `ParentOf` cr
+          , pr2 `ParentOf` cr
+          , MonadIO cr
+          , ReadModes ioMode
+          )
+        ⇒ RegionalFileHandle ioMode pr1
+        → RegionalPtr α pr2
+        → Int
+        → cr Int
+hGetBuf = wrapPtr E.hGetBuf
 
 #if !defined(__NHC__) && !defined(__HUGS__)
 -- | Wraps: @System.IO.'SIO.hPutBufNonBlocking'@.
-hPutBufNonBlocking ∷ (pr `ParentOf` cr, MonadIO cr, WriteModes ioMode)
-                   ⇒ RegionalFileHandle ioMode pr → Ptr α → Int → cr Int
-hPutBufNonBlocking = wrap3 E.hPutBufNonBlocking
+hPutBufNonBlocking ∷ ( pr1 `ParentOf` cr
+                     , pr2 `ParentOf` cr
+                     , MonadIO cr
+                     , WriteModes ioMode
+                     )
+                   ⇒ RegionalFileHandle ioMode pr1
+                   → RegionalPtr α pr2
+                   → Int
+                   → cr Int
+hPutBufNonBlocking = wrapPtr E.hPutBufNonBlocking
 
 -- | 'hGetBufNonBlocking' @hdl buf count@ reads data from the handle @hdl@
 -- into the buffer @buf@ until either EOF is reached, or
@@ -1001,9 +1038,16 @@ hPutBufNonBlocking = wrap3 E.hPutBufNonBlocking
 -- on the 'RegionalFileHandle', and reads bytes directly.
 --
 -- Wraps: @System.IO.'SIO.hGetBufNonBlocking'@.
-hGetBufNonBlocking ∷ (pr `ParentOf` cr, MonadIO cr, ReadModes ioMode)
-                   ⇒ RegionalFileHandle ioMode pr → Ptr α → Int → cr Int
-hGetBufNonBlocking = wrap3 E.hGetBufNonBlocking
+hGetBufNonBlocking ∷ ( pr1 `ParentOf` cr
+                     , pr2 `ParentOf` cr
+                     , MonadIO cr
+                     , ReadModes ioMode
+                     )
+                   ⇒ RegionalFileHandle ioMode pr1
+                   → RegionalPtr α pr2
+                   → Int
+                   → cr Int
+hGetBufNonBlocking = wrapPtr E.hGetBufNonBlocking
 #endif
 
 
@@ -1151,4 +1195,3 @@ hSetNewlineMode = wrap2 E.hSetNewlineMode
 
 
 -- The End ---------------------------------------------------------------------
-

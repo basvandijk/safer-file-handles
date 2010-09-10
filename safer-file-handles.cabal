@@ -1,5 +1,5 @@
 name:          safer-file-handles
-version:       0.7.0.1
+version:       0.8
 cabal-version: >=1.6
 build-type:    Custom
 license:       BSD3
@@ -58,6 +58,7 @@ Library
                , MonadCatchIO-transformers >= 0.2   && < 0.3
                , explicit-iomodes          >= 0.5   && < 0.6
                , pathtype                  >= 0.0.1 && < 0.6
+               , regional-pointers         >= 0.3   && < 0.4
   exposed-modules: System.IO.SaferFileHandles
                    System.IO.SaferFileHandles.Unsafe
   other-modules:   System.IO.SaferFileHandles.Internal
