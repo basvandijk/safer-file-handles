@@ -143,7 +143,7 @@ module System.IO.SaferFileHandles
     -- ** Text input
     -- | Note that the following text input operations are polymorphic in the
     -- IOMode of the given handle. However the IOModes are restricted to
-    -- 'ReadModes' only which can be either 'R' or 'RW'.
+    -- 'ReadModes' only which can be either 'ReadMode' or 'ReadWriteMode'.
     , hWaitForInput
     , hReady
     , hGetChar
@@ -154,7 +154,8 @@ module System.IO.SaferFileHandles
     -- ** Text ouput
     -- | Note that the following text output operations are polymorphic in the
     -- IOMode of the given handle. However the IOModes are restricted to
-    -- 'WriteModes' only which can be either 'W', 'A' or 'RW'.
+    -- 'WriteModes' only which can be either
+    -- 'WriteMode', 'AppendMode' or 'ReadWriteMode'.
     , hPutChar
     , hPutStr
     , hPutStrLn
