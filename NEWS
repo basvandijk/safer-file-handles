@@ -1,3 +1,26 @@
+0.8
+
+(Released on: Sat Sep 11 14:18:20 UTC 2010)
+
+* Replaced Ptrs by RegionalPtrs
+
+* Added strictness flags to the arguments of the RegionalFileHandle data constructor
+
+
+0.7
+
+(Released on: Wed Sep 1 20:11:50 UTC 2010)
+
+* Use the safer Path type from the pathtype package
+
+* Depend on explicit-iomodes >= 0.5 && < 0.6
+
+  The, from explicit-iomodes imported, ReadModes and WriteModes classes
+  have gotten private super classes which prevents users from accidentally
+  defining for example: 'instance ReadModes WriteMode'
+  which would defeat the safety guarantees of this package.
+
+
 0.6.1
 
 (Released on: Sat Aug 14 09:20:55 UTC 2010)
