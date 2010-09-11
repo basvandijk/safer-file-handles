@@ -63,6 +63,12 @@ wrap3 ∷ MonadIO m
       → (RegionalFileHandle ioMode r → γ → β → m α)
 wrap3 f = \h z y → liftIO $ sanitizeIOError $ f (unsafeHandle h) z y
 
+-- | Modify thrown @IOErrors@ in the given computation by erasing the
+-- 'ioe_handle' field in the @IOError@ which may contain the @Handle@ which
+-- caused the @IOError@.
+--
+-- I use this to ensure that @Handles@ don't /leak/ out the region via
+-- exceptions.
 sanitizeIOError ∷ IO α → IO α
 sanitizeIOError = modifyIOError $ \e → e { ioe_handle = Nothing }
 
