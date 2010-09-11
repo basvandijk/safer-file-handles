@@ -974,7 +974,7 @@ hPutBuf = wrapPtr E.hPutBuf
 wrapPtr ∷ MonadIO cr
         ⇒ (Handle ioMode → Ptr α → Int → IO β)
         → (RegionalFileHandle ioMode pr1 → RegionalPtr α pr2 → Int → cr β)
-wrapPtr f = \h ptr → liftIO ∘ f (unsafeHandle h) (unsafePtr ptr)
+wrapPtr f = \h rPtr → liftIO ∘ f (unsafeHandle h) (unsafePtr rPtr)
 
 -- | 'hGetBuf' @hdl buf count@ reads data from the handle @hdl@
 -- into the buffer @buf@ until either EOF is reached or
