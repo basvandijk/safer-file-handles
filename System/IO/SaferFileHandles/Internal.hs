@@ -22,13 +22,16 @@ module System.IO.SaferFileHandles.Internal
 --------------------------------------------------------------------------------
 
 -- from base:
-import Control.Monad                     ( return, (>>=), fail )
+import Control.Monad                     ( return, liftM )
 import Data.Function                     ( ($) )
 import Data.Maybe                        ( Maybe(Nothing, Just) )
 
+-- from base-unicode-symbols:
+import Data.Function.Unicode             ( (∘) )
+
 -- from regions:
 import Control.Monad.Trans.Region        ( Dup(dup) )
-import Control.Monad.Trans.Region.OnExit ( CloseHandle )
+import Control.Monad.Trans.Region.OnExit ( FinalizerHandle )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes         ( Handle )
@@ -45,13 +48,11 @@ import System.IO.ExplicitIOModes         ( IOMode )
 -- | A regional handle to an opened file parameterized by the 'IOMode' in which
 -- you opened the file and the region in which it was created.
 data RegionalFileHandle ioMode (r ∷ * → *) =
-    RegionalFileHandle !(Handle ioMode) !(Maybe (CloseHandle r))
+    RegionalFileHandle !(Handle ioMode) !(Maybe (FinalizerHandle r))
 
 instance Dup (RegionalFileHandle ioMode) where
     dup (RegionalFileHandle h Nothing)   = return $ RegionalFileHandle h Nothing
-    dup (RegionalFileHandle h (Just ch)) = do ch' ← dup ch
-                                              return $ RegionalFileHandle h
-                                                     $ Just ch'
+    dup (RegionalFileHandle h (Just ch)) = liftM (RegionalFileHandle h ∘ Just) $ dup ch
 
 
 -- The End ---------------------------------------------------------------------
