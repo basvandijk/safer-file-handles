@@ -72,6 +72,14 @@ module System.IO.SaferFileHandles
       {-| These standard handles have concrete IOModes by default which work
       for the majority of cases. In the rare occasion that you know these
       handles have different IOModes you can 'cast' them.
+
+      Note that these handles a pure values. This means they don't perform the
+      side-effect of registering a finalizer like @hClose stdin@ in the
+      'RegionT' monad.
+
+      Finally note that the region parameter of the handles is set to
+      'RootRegion' which is the ancestor of any region. This allows the standard
+      handles to be used in any region.
       -}
     , stdin, stdout, stderr
     , cast
@@ -327,15 +335,15 @@ import System.IO.SaferFileHandles.Unsafe   ( unsafeHandle
 -------------------------------------------------------------------------------
 
 -- | Wraps: @System.IO.'SIO.stdin'@.
-stdin ∷ RegionalFileHandle ReadMode r
+stdin ∷ RegionalFileHandle ReadMode RootRegion
 stdin = RegionalFileHandle E.stdin Nothing
 
 -- | Wraps: @System.IO.'SIO.stdout'@.
-stdout ∷ RegionalFileHandle WriteMode r
+stdout ∷ RegionalFileHandle WriteMode RootRegion
 stdout = RegionalFileHandle E.stdout Nothing
 
 -- | Wraps: @System.IO.'SIO.stderr'@.
-stderr ∷ RegionalFileHandle WriteMode r
+stderr ∷ RegionalFileHandle WriteMode RootRegion
 stderr = RegionalFileHandle E.stderr Nothing
 
 {-| Cast the IOMode of a handle if the handle supports it.
