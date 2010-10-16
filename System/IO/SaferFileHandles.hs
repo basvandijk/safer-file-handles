@@ -193,6 +193,9 @@ module System.IO.SaferFileHandles
     , hGetBuf
 
 #if !defined(__NHC__) && !defined(__HUGS__)
+#if MIN_VERSION_base(4,3,0)
+    , hGetBufSome
+#endif
     , hPutBufNonBlocking
     , hGetBufNonBlocking
 #endif
@@ -1015,6 +1018,38 @@ hGetBuf ∷ ( pr1 `AncestorRegion` cr
 hGetBuf = wrapPtr E.hGetBuf
 
 #if !defined(__NHC__) && !defined(__HUGS__)
+
+#if MIN_VERSION_base(4,3,0)
+-- | 'hGetBufSome' @hdl buf count@ reads data from the handle @hdl@
+-- into the buffer @buf@.  If there is any data available to read,
+-- then 'hGetBufSome' returns it immediately; it only blocks if there
+-- is no data to be read.
+--
+-- It returns the number of bytes actually read.  This may be zero if
+-- EOF was reached before any data was read (or if @count@ is zero).
+--
+-- 'hGetBufSome' never raises an EOF exception, instead it returns a value
+-- smaller than @count@.
+--
+-- If the handle is a pipe or socket, and the writing end
+-- is closed, 'hGetBufSome' will behave as if EOF was reached.
+--
+-- 'hGetBufSome' ignores the prevailing 'TextEncoding' and 'NewlineMode'
+-- on the 'Handle', and reads bytes directly.
+--
+-- Wraps: @System.IO.'SIO.hGetBufSome'@.
+hGetBufSome ∷ ( pr1 `AncestorRegion` cr
+              , pr2 `AncestorRegion` cr
+              , MonadIO cr
+              , ReadModes ioMode
+              )
+            ⇒ RegionalFileHandle ioMode pr1
+            → RegionalPtr α pr2
+            → Int
+            → cr Int
+hGetBufSome = wrapPtr E.hGetBufSome
+#endif
+
 -- | Wraps: @System.IO.'SIO.hPutBufNonBlocking'@.
 hPutBufNonBlocking ∷ ( pr1 `AncestorRegion` cr
                      , pr2 `AncestorRegion` cr
