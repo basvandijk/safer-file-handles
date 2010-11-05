@@ -242,7 +242,7 @@ module System.IO.SaferFileHandles
 
 -- from base:
 import Prelude           ( Integer )
-import Control.Monad     ( return, (>>=), fail, liftM )
+import Control.Monad     ( return, (>>=), liftM )
 import Data.Bool         ( Bool(..) )
 import Data.Function     ( ($), flip )
 import Data.Functor      ( fmap )
@@ -262,8 +262,9 @@ import System.IO.Error
 -- from base-unicode-symbols:
 import Data.Function.Unicode ( (∘) )
 
--- from MonadCatchIO-transformers:
-import Control.Monad.CatchIO ( MonadCatchIO, block )
+-- from monad-peel:
+import Control.Monad.IO.Peel  ( MonadPeelIO )
+import Control.Exception.Peel ( block )
 
 -- from transformers:
 import Control.Monad.IO.Class ( MonadIO, liftIO )
@@ -404,14 +405,14 @@ This operation may fail with:
 Note: if you will be working with files containing binary data, you'll want to
 be using 'openBinaryFile'.
 -}
-openFile ∷ (MonadCatchIO pr, AbsRelClass ar)
+openFile ∷ (MonadPeelIO pr, AbsRelClass ar)
          ⇒ FilePath ar
          → IOMode ioMode
          → RegionT s pr
              (RegionalFileHandle ioMode (RegionT s pr))
 openFile = openNormal E.openFile
 
-openNormal ∷ (MonadCatchIO pr, AbsRelClass ar)
+openNormal ∷ (MonadPeelIO pr, AbsRelClass ar)
            ⇒ (E.FilePath → IOMode ioMode → IO (E.Handle ioMode))
            → ( FilePath ar
              → IOMode ioMode
@@ -427,7 +428,7 @@ openNormal open = \filePath ioMode → block $ do
 function to the resulting regional file handle and runs the resulting
 region. This provides a safer safer replacement for @System.IO.'SIO.withFile'@.
 -}
-withFile ∷ (MonadCatchIO pr, AbsRelClass ar)
+withFile ∷ (MonadPeelIO pr, AbsRelClass ar)
          ⇒ FilePath ar
          → IOMode ioMode
          → (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
@@ -440,14 +441,14 @@ withFile filePath ioMode f = runRegionT $ openFile filePath ioMode >>= f
 -- inferred from the type of the resulting 'RegionalFileHandle'.
 --
 -- Note that: @openFile' fp = 'openFile' fp 'mkIOMode'@.
-openFile' ∷ (MonadCatchIO pr, AbsRelClass ar, MkIOMode ioMode)
+openFile' ∷ (MonadPeelIO pr, AbsRelClass ar, MkIOMode ioMode)
           ⇒ FilePath ar
           → RegionT s pr
               (RegionalFileHandle ioMode (RegionT s pr))
 openFile' filePath = openFile filePath mkIOMode
 
 -- | Note that: @withFile' filePath = 'withFile' filePath 'mkIOMode'@.
-withFile' ∷ (MonadCatchIO pr, AbsRelClass ar, MkIOMode ioMode)
+withFile' ∷ (MonadPeelIO pr, AbsRelClass ar, MkIOMode ioMode)
           ⇒ FilePath ar
           → (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
           → pr α
@@ -906,7 +907,7 @@ readLn = liftIO SIO.readLn
 -- characters.  (See also 'hSetBinaryMode'.)
 --
 -- This provides a safer replacement for @System.IO.'SIO.openBinaryFile'@.
-openBinaryFile ∷ (MonadCatchIO pr, AbsRelClass ar)
+openBinaryFile ∷ (MonadPeelIO pr, AbsRelClass ar)
                ⇒ FilePath ar
                → IOMode ioMode
                → RegionT s pr
@@ -918,7 +919,7 @@ continuation function to the resulting regional file handle and runs the
 resulting region. This provides a safer replacement for
 @System.IO.'SIO.withBinaryFile'@.
 -}
-withBinaryFile ∷ (MonadCatchIO pr, AbsRelClass ar)
+withBinaryFile ∷ (MonadPeelIO pr, AbsRelClass ar)
                ⇒ FilePath ar
                → IOMode ioMode
                →  (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
@@ -928,14 +929,14 @@ withBinaryFile filePath ioMode f = runRegionT $ openBinaryFile filePath ioMode >
 -- ** Opening binary files by inferring the IOMode
 
 -- | Note that: @openBinaryFile' filePath = 'openBinaryFile' filePath 'mkIOMode'@.
-openBinaryFile' ∷ (MonadCatchIO pr, AbsRelClass ar, MkIOMode ioMode)
+openBinaryFile' ∷ (MonadPeelIO pr, AbsRelClass ar, MkIOMode ioMode)
                 ⇒ FilePath ar
                 → RegionT s pr
                     (RegionalFileHandle ioMode (RegionT s pr))
 openBinaryFile' filePath = openBinaryFile filePath mkIOMode
 
 -- | Note that: @withBinaryFile' filePath = 'withBinaryFile' filePath 'mkIOMode'@.
-withBinaryFile' ∷ (MonadCatchIO pr, AbsRelClass ar, MkIOMode ioMode)
+withBinaryFile' ∷ (MonadPeelIO pr, AbsRelClass ar, MkIOMode ioMode)
                 ⇒ FilePath ar
                 →  (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
                 → pr α
@@ -1105,7 +1106,7 @@ hGetBufNonBlocking = wrapPtr E.hGetBufNonBlocking
 -- where XXX is some random number.
 type Template = RelFile
 
-openTemp ∷ (MonadCatchIO pr, AbsRelClass ar)
+openTemp ∷ (MonadPeelIO pr, AbsRelClass ar)
          ⇒ (E.FilePath → String → IO (E.FilePath, E.Handle ReadWriteMode))
          → ( DirPath ar
            → Template
@@ -1133,7 +1134,7 @@ openTemp open = \dirPath template → block $ do
 -- so if you rely on this behaviour it is best to use local filesystems only.
 --
 -- This provides a safer replacement for @System.IO.'SIO.openTempFile'@.
-openTempFile ∷ (MonadCatchIO pr, AbsRelClass ar)
+openTempFile ∷ (MonadPeelIO pr, AbsRelClass ar)
              ⇒ DirPath ar -- ^ Directory in which to create the file.
              → Template   -- ^ File name template.
              → RegionT s pr ( AbsFile
@@ -1146,7 +1147,7 @@ openTempFile = openTemp E.openTempFile
 --
 -- This provides a safer replacement for @System.IO.'SIO.openBinaryTempFile'@.
 openBinaryTempFile ∷
-    (MonadCatchIO pr, AbsRelClass ar)
+    (MonadPeelIO pr, AbsRelClass ar)
   ⇒ DirPath ar
   → Template
   → RegionT s pr ( AbsFile
@@ -1160,7 +1161,7 @@ openBinaryTempFile = openTemp E.openBinaryTempFile
 -- This provides a safer replacement for
 -- @System.IO.'SIO.openTempFileWithDefaultPermissions'@.
 openTempFileWithDefaultPermissions ∷
-    (MonadCatchIO pr, AbsRelClass ar)
+    (MonadPeelIO pr, AbsRelClass ar)
   ⇒ DirPath ar
   → Template
   → RegionT s pr ( AbsFile
@@ -1173,7 +1174,7 @@ openTempFileWithDefaultPermissions = openTemp E.openTempFileWithDefaultPermissio
 -- This provides a safer replacement for
 -- @System.IO.'SIO.openBinaryTempFileWithDefaultPermissions'@.
 openBinaryTempFileWithDefaultPermissions ∷
-    (MonadCatchIO pr, AbsRelClass ar)
+    (MonadPeelIO pr, AbsRelClass ar)
   ⇒ DirPath ar
   → Template
   → RegionT s pr ( AbsFile

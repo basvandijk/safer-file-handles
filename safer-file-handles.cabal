@@ -55,7 +55,7 @@ Library
                , base-unicode-symbols      >= 0.1.1 && < 0.3
                , regions                   >= 0.8   && < 0.9
                , transformers              >= 0.2   && < 0.3
-               , MonadCatchIO-transformers >= 0.2   && < 0.3
+               , monad-peel                >= 0.1   && < 0.3
                , explicit-iomodes          >= 0.5   && < 0.7
                , pathtype                  >= 0.0.1 && < 0.6
                , regional-pointers         >= 0.5   && < 0.6
