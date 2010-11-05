@@ -255,6 +255,10 @@ import Foreign.Ptr       ( Ptr )
 
 import qualified System.IO as SIO
 
+#if __GLASGOW_HASKELL__ < 701
+import Control.Monad     ( fail )
+#endif
+
 #ifdef __HADDOCK__
 import System.IO.Error
 #endif
