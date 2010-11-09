@@ -1,3 +1,20 @@
+0.9
+
+(Released on: Sat Nov 6 15:57:09 UTC 2010)
+
+* Released at BelHac 2010!
+
+* Depend on regions-0.8 and regional-pointers-0.5.
+
+* Set the region parameter of the standard handles to RootRegion
+  This allows them to be used in any region
+  because the RootRegion is the ancestor of any region.
+
+* Tested with GHC-7 and base-4.3 and added hGetBufSome.
+
+* Use MonadPeelIO instead of MonadCatchIO.
+
+
 0.8
 
 (Released on: Sat Sep 11 14:18:20 UTC 2010)
