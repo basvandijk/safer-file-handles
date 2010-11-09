@@ -91,14 +91,10 @@ module System.IO.SaferFileHandles
     , openFile', withFile'
 
       -- ** Regions
-      {-| Note that this module re-exports the @Control.Monad.Trans.Region@
-      module from the @regions@ package which allows you to:
-
-      * Run a region using 'runRegionT'.
-
-      * Concurrently run a region inside another region using 'forkIOTopRegion'.
-
-       * Duplicate a 'RegionalFileHandle' to a parent region using 'dup'.
+      {-|
+      Note that this module re-exports the @Control.Monad.Trans.Region@ module
+      from the @regions@ package which allows you to run regions using 'runRegionT'
+      and duplicate a 'RegionalFileHandle' to a parent region using 'dup'.
       -}
     , module Control.Monad.Trans.Region
 
