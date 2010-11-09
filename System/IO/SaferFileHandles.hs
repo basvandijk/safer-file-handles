@@ -62,9 +62,11 @@ module System.IO.SaferFileHandles
     , AppendMode
     , ReadWriteMode
 
+      -- *** Grouping the IOMode types.
     , ReadModes
     , WriteModes
 
+      -- *** A value-level IOMode.
     , IOMode(..)
     , MkIOMode(mkIOMode)
 
