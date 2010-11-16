@@ -75,7 +75,7 @@ module System.IO.SaferFileHandles
       for the majority of cases. In the rare occasion that you know these
       handles have different IOModes you can 'cast' them.
 
-      Note that these handles a pure values. This means they don't perform the
+      Note that these handles are pure values. This means they don't perform the
       side-effect of registering a finalizer like @hClose stdin@ in the
       'RegionT' monad.
 
