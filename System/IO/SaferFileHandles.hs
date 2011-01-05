@@ -253,7 +253,7 @@ import Foreign.Ptr       ( Ptr )
 
 import qualified System.IO as SIO
 
-#if __GLASGOW_HASKELL__ < 701
+#if __GLASGOW_HASKELL__ < 700
 import Control.Monad     ( fail )
 #endif
 
