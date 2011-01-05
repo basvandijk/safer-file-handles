@@ -499,7 +499,7 @@ hIsEOF = wrap E.hIsEOF
 
 -- | Generalizes: @System.IO.'SIO.isEOF'@ to any 'MonadIO'.
 isEOF ∷ MonadIO m ⇒ m Bool
-isEOF = liftIO $ E.isEOF
+isEOF = liftIO E.isEOF
 
 
 -- ** Buffering operations
