@@ -321,7 +321,7 @@ import System.Path ( DirPath, FilePath
                    )
 
 -- from regional-pointers:
-import Foreign.Ptr.Region        ( RegionalPtr )
+import Foreign.Ptr.Region        ( AllocatedPointer )
 import Foreign.Ptr.Region.Unsafe ( unsafePtr )
 
 -- from ourselves:
@@ -984,18 +984,19 @@ hSetBinaryMode = wrap2 E.hSetBinaryMode
 -- Wraps: @System.IO.'SIO.hPutBuf'@.
 hPutBuf ∷ ( pr1 `AncestorRegion` cr
           , pr2 `AncestorRegion` cr
+          , AllocatedPointer pointer
           , MonadIO cr
           , WriteModes ioMode
           )
         ⇒ RegionalFileHandle ioMode pr1
-        → RegionalPtr α pr2
+        → pointer α pr2
         → Int
         → cr ()
 hPutBuf = wrapPtr E.hPutBuf
 
-wrapPtr ∷ MonadIO cr
+wrapPtr ∷ (AllocatedPointer pointer, MonadIO cr)
         ⇒ (Handle ioMode → Ptr α → Int → IO β)
-        → (RegionalFileHandle ioMode pr1 → RegionalPtr α pr2 → Int → cr β)
+        → (RegionalFileHandle ioMode pr1 → pointer α pr2 → Int → cr β)
 wrapPtr f = \h rPtr → liftIO ∘ f (unsafeHandle h) (unsafePtr rPtr)
 
 -- | 'hGetBuf' @hdl buf count@ reads data from the handle @hdl@
@@ -1019,11 +1020,12 @@ wrapPtr f = \h rPtr → liftIO ∘ f (unsafeHandle h) (unsafePtr rPtr)
 -- Wraps: @System.IO.'SIO.hGetBuf'@.
 hGetBuf ∷ ( pr1 `AncestorRegion` cr
           , pr2 `AncestorRegion` cr
+          , AllocatedPointer pointer
           , MonadIO cr
           , ReadModes ioMode
           )
         ⇒ RegionalFileHandle ioMode pr1
-        → RegionalPtr α pr2
+        → pointer α pr2
         → Int
         → cr Int
 hGetBuf = wrapPtr E.hGetBuf
@@ -1051,11 +1053,12 @@ hGetBuf = wrapPtr E.hGetBuf
 -- Wraps: @System.IO.'SIO.hGetBufSome'@.
 hGetBufSome ∷ ( pr1 `AncestorRegion` cr
               , pr2 `AncestorRegion` cr
+              , AllocatedPointer pointer
               , MonadIO cr
               , ReadModes ioMode
               )
             ⇒ RegionalFileHandle ioMode pr1
-            → RegionalPtr α pr2
+            → pointer α pr2
             → Int
             → cr Int
 hGetBufSome = wrapPtr E.hGetBufSome
@@ -1064,11 +1067,12 @@ hGetBufSome = wrapPtr E.hGetBufSome
 -- | Wraps: @System.IO.'SIO.hPutBufNonBlocking'@.
 hPutBufNonBlocking ∷ ( pr1 `AncestorRegion` cr
                      , pr2 `AncestorRegion` cr
+                     , AllocatedPointer pointer
                      , MonadIO cr
                      , WriteModes ioMode
                      )
                    ⇒ RegionalFileHandle ioMode pr1
-                   → RegionalPtr α pr2
+                   → pointer α pr2
                    → Int
                    → cr Int
 hPutBufNonBlocking = wrapPtr E.hPutBufNonBlocking
@@ -1095,11 +1099,12 @@ hPutBufNonBlocking = wrapPtr E.hPutBufNonBlocking
 -- Wraps: @System.IO.'SIO.hGetBufNonBlocking'@.
 hGetBufNonBlocking ∷ ( pr1 `AncestorRegion` cr
                      , pr2 `AncestorRegion` cr
+                     , AllocatedPointer pointer
                      , MonadIO cr
                      , ReadModes ioMode
                      )
                    ⇒ RegionalFileHandle ioMode pr1
-                   → RegionalPtr α pr2
+                   → pointer α pr2
                    → Int
                    → cr Int
 hGetBufNonBlocking = wrapPtr E.hGetBufNonBlocking
