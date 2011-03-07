@@ -38,29 +38,26 @@ import Control.Monad.IO.Class            ( MonadIO, liftIO )
 import System.IO.ExplicitIOModes         ( Handle, IO )
 
 -- from ourselves:
-import System.IO.SaferFileHandles.Internal ( RegionalFileHandle(RegionalFileHandle) )
+import System.IO.SaferFileHandles.Internal ( FileHandle, unsafeHandle )
 
 
 --------------------------------------------------------------------------------
 -- Getting the actual @Handle@
 --------------------------------------------------------------------------------
 
-unsafeHandle ∷ RegionalFileHandle ioMode r → Handle ioMode
-unsafeHandle (RegionalFileHandle h _) = h
-
-wrap ∷ MonadIO m
+wrap ∷ (FileHandle handle, MonadIO m)
      ⇒ (Handle ioMode → IO α)
-     → (RegionalFileHandle ioMode r → m α)
+     → (handle ioMode r → m α)
 wrap f = \h → liftIO $ sanitizeIOError $ f (unsafeHandle h)
 
-wrap2 ∷ MonadIO m
+wrap2 ∷ (FileHandle handle, MonadIO m)
       ⇒ (Handle ioMode → β → IO α)
-      → (RegionalFileHandle ioMode r → β → m α)
+      → (handle ioMode r → β → m α)
 wrap2 f = \h y → liftIO $ sanitizeIOError $ f (unsafeHandle h) y
 
-wrap3 ∷ MonadIO m
+wrap3 ∷ (FileHandle handle, MonadIO m)
       ⇒ (Handle ioMode → γ → β → IO α)
-      → (RegionalFileHandle ioMode r → γ → β → m α)
+      → (handle ioMode r → γ → β → m α)
 wrap3 f = \h z y → liftIO $ sanitizeIOError $ f (unsafeHandle h) z y
 
 -- | Modify thrown @IOErrors@ in the given computation by erasing the

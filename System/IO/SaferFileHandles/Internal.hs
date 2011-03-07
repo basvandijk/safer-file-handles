@@ -14,7 +14,9 @@
 --------------------------------------------------------------------------------
 
 module System.IO.SaferFileHandles.Internal
-    ( RegionalFileHandle(RegionalFileHandle) ) where
+    ( RegionalFileHandle(RegionalFileHandle)
+    , FileHandle(unsafeHandle)
+    ) where
 
 
 --------------------------------------------------------------------------------
@@ -22,12 +24,7 @@ module System.IO.SaferFileHandles.Internal
 --------------------------------------------------------------------------------
 
 -- from base:
-import Control.Monad                     ( return, liftM )
-import Data.Function                     ( ($) )
-import Data.Maybe                        ( Maybe(Nothing, Just) )
-
--- from base-unicode-symbols:
-import Data.Function.Unicode             ( (∘) )
+import Control.Monad                     ( liftM )
 
 -- from regions:
 import Control.Monad.Trans.Region        ( Dup(dup) )
@@ -48,11 +45,16 @@ import System.IO.ExplicitIOModes         ( IOMode )
 -- | A regional handle to an opened file parameterized by the 'IOMode' in which
 -- you opened the file and the region in which it was created.
 data RegionalFileHandle ioMode (r ∷ * → *) =
-    RegionalFileHandle !(Handle ioMode) !(Maybe (FinalizerHandle r))
+    RegionalFileHandle !(Handle ioMode) !(FinalizerHandle r)
 
 instance Dup (RegionalFileHandle ioMode) where
-    dup (RegionalFileHandle h Nothing)   = return $ RegionalFileHandle h Nothing
-    dup (RegionalFileHandle h (Just ch)) = liftM (RegionalFileHandle h ∘ Just) $ dup ch
+    dup (RegionalFileHandle h ch) = liftM (RegionalFileHandle h) (dup ch)
+
+class FileHandle (handle ∷ * → (* → *) → *) where
+    unsafeHandle ∷ handle ioMode r → Handle ioMode
+
+instance FileHandle RegionalFileHandle where
+    unsafeHandle (RegionalFileHandle handle _) = handle
 
 
 -- The End ---------------------------------------------------------------------

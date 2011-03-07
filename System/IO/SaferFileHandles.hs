@@ -2,6 +2,7 @@
            , NoImplicitPrelude
            , CPP
            , RankNTypes
+           , KindSignatures
   #-}
 
 -------------------------------------------------------------------------------
@@ -52,8 +53,9 @@
 -------------------------------------------------------------------------------
 
 module System.IO.SaferFileHandles
-    ( -- * Regional file handles
-      RegionalFileHandle
+    ( -- * File handles
+      FileHandle
+    , RegionalFileHandle
 
       -- ** IO Modes
       -- | Types that represent the IOMode an opened file can be in.
@@ -83,6 +85,7 @@ module System.IO.SaferFileHandles
       'RootRegion' which is the ancestor of any region. This allows the standard
       handles to be used in any region.
       -}
+    , StdFileHandle
     , stdin, stdout, stderr
     , cast
 
@@ -242,11 +245,11 @@ module System.IO.SaferFileHandles
 import Prelude           ( Integer )
 import Control.Monad     ( return, (>>=), liftM )
 import Data.Bool         ( Bool(..) )
-import Data.Function     ( ($), flip )
+import Data.Function     ( ($) )
 import Data.Functor      ( fmap )
 import Data.Char         ( Char, String )
 import Data.Int          ( Int )
-import Data.Maybe        ( Maybe(Nothing, Just) )
+import Data.Maybe        ( Maybe )
 import Text.Show         ( Show )
 import Text.Read         ( Read )
 import Foreign.Ptr       ( Ptr )
@@ -325,7 +328,9 @@ import Foreign.Ptr.Region        ( AllocatedPointer )
 import Foreign.Ptr.Region.Unsafe ( unsafePtr )
 
 -- from ourselves:
-import System.IO.SaferFileHandles.Internal ( RegionalFileHandle(RegionalFileHandle) )
+import System.IO.SaferFileHandles.Internal ( RegionalFileHandle(RegionalFileHandle)
+                                           , FileHandle
+                                           )
 import System.IO.SaferFileHandles.Unsafe   ( unsafeHandle
                                            , wrap, wrap2, wrap3
                                            , sanitizeIOError
@@ -348,29 +353,33 @@ mask_ = block
 -- ** Standard handles
 -------------------------------------------------------------------------------
 
+newtype StdFileHandle ioMode (r ∷ * → *) = StdFileHandle (Handle ioMode)
+
+instance FileHandle StdFileHandle where
+    unsafeHandle (StdFileHandle handle) = handle
+
 -- | Wraps: @System.IO.'SIO.stdin'@.
-stdin ∷ RegionalFileHandle ReadMode RootRegion
-stdin = RegionalFileHandle E.stdin Nothing
+stdin ∷ StdFileHandle ReadMode RootRegion
+stdin = StdFileHandle E.stdin
 
 -- | Wraps: @System.IO.'SIO.stdout'@.
-stdout ∷ RegionalFileHandle WriteMode RootRegion
-stdout = RegionalFileHandle E.stdout Nothing
+stdout ∷ StdFileHandle WriteMode RootRegion
+stdout = StdFileHandle E.stdout
 
 -- | Wraps: @System.IO.'SIO.stderr'@.
-stderr ∷ RegionalFileHandle WriteMode RootRegion
-stderr = RegionalFileHandle E.stderr Nothing
+stderr ∷ StdFileHandle WriteMode RootRegion
+stderr = StdFileHandle E.stderr
 
 {-| Cast the IOMode of a handle if the handle supports it.
 
-This function is primarily used in combination with the standard handles. When
-you know the IOMode of a handle is different from its default IOMode you can
-cast it to the right one.
+This function is used in combination with the standard handles.
+When you know the IOMode of a handle is different from its default IOMode you
+can cast it to the right one.
 -}
 cast ∷ (pr `AncestorRegion` cr, MonadIO cr, CheckMode castedIOMode)
-     ⇒ RegionalFileHandle anyIOMode pr
-     → cr (Maybe (RegionalFileHandle castedIOMode pr))
-cast (RegionalFileHandle h mbCloseHndl) =
-    (liftM ∘ fmap) (flip RegionalFileHandle mbCloseHndl) $ liftIO $ E.cast h
+     ⇒ StdFileHandle anyIOMode pr
+     → cr (Maybe (StdFileHandle castedIOMode pr))
+cast = (liftM ∘ fmap) StdFileHandle ∘ liftIO ∘ E.cast ∘ unsafeHandle
 
 
 -------------------------------------------------------------------------------
@@ -432,7 +441,7 @@ openNormal ∷ (MonadControlIO pr, AbsRelClass ar)
 openNormal open = \filePath ioMode → mask_ $ do
   h ← liftIO $ open (getPathString filePath) ioMode
   ch ← onExit $ sanitizeIOError $ hClose h
-  return $ RegionalFileHandle h $ Just ch
+  return $ RegionalFileHandle h ch
 
 {-| Convenience function which opens a file, applies the given continuation
 function to the resulting regional file handle and runs the resulting
@@ -475,8 +484,8 @@ withFile' filePath = withFile filePath mkIOMode
 -- 'hFileSize' @hdl@ returns the size of that file in 8-bit bytes.
 --
 -- Wraps: @System.IO.'SIO.hFileSize'@.
-hFileSize ∷ (pr `AncestorRegion` cr, MonadIO cr)
-          ⇒ RegionalFileHandle ioMode pr → cr Integer
+hFileSize ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+          ⇒ handle ioMode pr → cr Integer
 hFileSize = wrap E.hFileSize
 
 #ifdef __GLASGOW_HASKELL__
@@ -484,8 +493,8 @@ hFileSize = wrap E.hFileSize
 -- to @size@ bytes.
 --
 -- Wraps: @System.IO.'SIO.hSetFileSize'@.
-hSetFileSize ∷ (pr `AncestorRegion` cr, MonadIO cr)
-             ⇒ RegionalFileHandle ioMode pr → Integer → cr ()
+hSetFileSize ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+             ⇒ handle ioMode pr → Integer → cr ()
 hSetFileSize = wrap2 E.hSetFileSize
 #endif
 
@@ -501,8 +510,8 @@ hSetFileSize = wrap2 E.hSetFileSize
 -- 'hLookAhead' and checking for an EOF exception.
 --
 -- Wraps: @System.IO.'SIO.hIsEOF'@.
-hIsEOF ∷ (pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
-       ⇒ RegionalFileHandle ioMode pr → cr Bool
+hIsEOF ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
+       ⇒ handle ioMode pr → cr Bool
 hIsEOF = wrap E.hIsEOF
 
 -- | Generalizes: @System.IO.'SIO.isEOF'@ to any 'MonadIO'.
@@ -529,16 +538,16 @@ isEOF = liftIO E.isEOF
 --    to be changed.
 --
 -- Wraps: @System.IO.'SIO.hSetBuffering'@.
-hSetBuffering ∷ (pr `AncestorRegion` cr, MonadIO cr)
-              ⇒ RegionalFileHandle ioMode pr → BufferMode → cr ()
+hSetBuffering ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+              ⇒ handle ioMode pr → BufferMode → cr ()
 hSetBuffering = wrap2 E.hSetBuffering
 
 -- | Computation 'hGetBuffering' @hdl@ returns the current buffering mode for
 -- @hdl@.
 --
 -- Wraps: @System.IO.'SIO.hGetBuffering'@.
-hGetBuffering ∷ (pr `AncestorRegion` cr, MonadIO cr)
-              ⇒ RegionalFileHandle ioMode pr → cr BufferMode
+hGetBuffering ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+              ⇒ handle ioMode pr → cr BufferMode
 hGetBuffering = wrap E.hGetBuffering
 
 -- | The action 'hFlush' @hdl@ causes any items buffered for output in handle
@@ -553,8 +562,8 @@ hGetBuffering = wrap E.hGetBuffering
 --  under these circumstances.
 --
 -- Wraps: @System.IO.'SIO.hFlush'@.
-hFlush ∷ (pr `AncestorRegion` cr, MonadIO cr, WriteModes ioMode)
-       ⇒ RegionalFileHandle ioMode pr → cr ()
+hFlush ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, WriteModes ioMode)
+       ⇒ handle ioMode pr → cr ()
 hFlush = wrap E.hFlush
 
 
@@ -564,8 +573,8 @@ hFlush = wrap E.hFlush
 -- a value of the abstract type 'HandlePosn'.
 --
 -- Wraps: @System.IO.'SIO.hGetPosn'@.
-hGetPosn ∷ (pr `AncestorRegion` cr, MonadIO cr)
-         ⇒ RegionalFileHandle ioMode pr → cr HandlePosn
+hGetPosn ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+         ⇒ handle ioMode pr → cr HandlePosn
 hGetPosn = wrap E.hGetPosn
 
 -- | If a call to 'hGetPosn' @hdl@ returns a position @p@, then computation
@@ -598,14 +607,14 @@ hSetPosn = liftIO ∘ E.hSetPosn
 --  * 'isPermissionError' if a system resource limit would be exceeded.
 --
 -- Wraps: @System.IO.'SIO.hSeek'@.
-hSeek ∷ (pr `AncestorRegion` cr, MonadIO cr)
-      ⇒ RegionalFileHandle ioMode pr → SeekMode → Integer → cr ()
+hSeek ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+      ⇒ handle ioMode pr → SeekMode → Integer → cr ()
 hSeek = wrap3 E.hSeek
 
 #if !defined(__NHC__)
 -- | Wraps: @System.IO.'SIO.hTell'@.
-hTell ∷ (pr `AncestorRegion` cr, MonadIO cr)
-      ⇒ RegionalFileHandle ioMode pr → cr Integer
+hTell ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+      ⇒ handle ioMode pr → cr Integer
 hTell = wrap E.hTell
 #endif
 
@@ -617,8 +626,8 @@ hTell = wrap E.hTell
 -- for testing the correctness of this library.
 --
 -- Wraps: @System.IO.'SIO.hIsOpen'@.
-hIsOpen ∷ (pr `AncestorRegion` cr, MonadIO cr)
-         ⇒ RegionalFileHandle ioMode pr → cr Bool
+hIsOpen ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+         ⇒ handle ioMode pr → cr Bool
 hIsOpen = wrap E.hIsOpen
 
 -- | Note that this operation should always return 'False' since the @regions@
@@ -626,8 +635,8 @@ hIsOpen = wrap E.hIsOpen
 -- for testing the correctness of this library.
 --
 -- Wraps: @System.IO.'SIO.hIsClosed'@.
-hIsClosed ∷ (pr `AncestorRegion` cr, MonadIO cr)
-           ⇒ RegionalFileHandle ioMode pr → cr Bool
+hIsClosed ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+           ⇒ handle ioMode pr → cr Bool
 hIsClosed = wrap E.hIsClosed
 
 -- | Note that this operation should always return 'True' for IOModes which have
@@ -635,8 +644,8 @@ hIsClosed = wrap E.hIsClosed
 -- correctness of this library.
 --
 -- Wraps: @System.IO.'SIO.hIsReadable'@.
-hIsReadable ∷ (pr `AncestorRegion` cr, MonadIO cr)
-            ⇒ RegionalFileHandle ioMode pr → cr Bool
+hIsReadable ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+            ⇒ handle ioMode pr → cr Bool
 hIsReadable = wrap E.hIsReadable
 
 -- | Note that this operation should always return 'True' for IOModes which have
@@ -644,13 +653,13 @@ hIsReadable = wrap E.hIsReadable
 -- correctness of this library.
 --
 -- Wraps: @System.IO.'SIO.hIsWritable'@.
-hIsWritable ∷ (pr `AncestorRegion` cr, MonadIO cr)
-            ⇒ RegionalFileHandle ioMode pr → cr Bool
+hIsWritable ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+            ⇒ handle ioMode pr → cr Bool
 hIsWritable = wrap E.hIsWritable
 
 -- | Wraps: @System.IO.'SIO.hIsSeekable'@.
-hIsSeekable ∷ (pr `AncestorRegion` cr, MonadIO cr)
-            ⇒ RegionalFileHandle ioMode pr → cr Bool
+hIsSeekable ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+            ⇒ handle ioMode pr → cr Bool
 hIsSeekable = wrap E.hIsSeekable
 
 
@@ -660,22 +669,22 @@ hIsSeekable = wrap E.hIsSeekable
 -- | Is the handle connected to a terminal?
 --
 -- Wraps: @System.IO.'SIO.hIsTerminalDevice'@.
-hIsTerminalDevice ∷ (pr `AncestorRegion` cr, MonadIO cr)
-                  ⇒ RegionalFileHandle ioMode pr → cr Bool
+hIsTerminalDevice ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+                  ⇒ handle ioMode pr → cr Bool
 hIsTerminalDevice = wrap E.hIsTerminalDevice
 
 -- | Set the echoing status of a handle connected to a terminal.
 --
 -- Wraps: @System.IO.'SIO.hSetEcho'@.
-hSetEcho ∷ (pr `AncestorRegion` cr, MonadIO cr)
-         ⇒ RegionalFileHandle ioMode pr → Bool → cr ()
+hSetEcho ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+         ⇒ handle ioMode pr → Bool → cr ()
 hSetEcho = wrap2 E.hSetEcho
 
 -- | Get the echoing status of a handle connected to a terminal.
 --
 -- Wraps: @System.IO.'SIO.hGetEcho'@.
-hGetEcho ∷ (pr `AncestorRegion` cr, MonadIO cr)
-         ⇒ RegionalFileHandle ioMode pr → cr Bool
+hGetEcho ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+         ⇒ handle ioMode pr → cr Bool
 hGetEcho = wrap E.hGetEcho
 #endif
 
@@ -684,8 +693,8 @@ hGetEcho = wrap E.hGetEcho
 
 #ifdef __GLASGOW_HASKELL__
 -- | Wraps: @System.IO.'SIO.hShow'@.
-hShow ∷ (pr `AncestorRegion` cr, MonadIO cr)
-      ⇒ RegionalFileHandle ioMode pr → cr String
+hShow ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+      ⇒ handle ioMode pr → cr String
 hShow = wrap E.hShow
 #endif
 
@@ -713,8 +722,8 @@ hShow = wrap E.hShow
 -- @safe@ foreign call in this respect.
 --
 -- Wraps: @System.IO.'SIO.hWaitForInput'@.
-hWaitForInput ∷ (pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
-              ⇒ RegionalFileHandle ioMode pr → Int → cr Bool
+hWaitForInput ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
+              ⇒ handle ioMode pr → Int → cr Bool
 hWaitForInput = wrap2 E.hWaitForInput
 
 -- | Computation 'hReady' @hdl@ indicates whether at least one item is
@@ -725,8 +734,8 @@ hWaitForInput = wrap2 E.hWaitForInput
 --  * 'isEOFError' if the end of file has been reached.
 --
 -- Wraps: @System.IO.'SIO.hReady'@.
-hReady ∷ (pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
-       ⇒ RegionalFileHandle ioMode pr → cr Bool
+hReady ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
+       ⇒ handle ioMode pr → cr Bool
 hReady = wrap E.hReady
 
 -- | Computation 'hGetChar' @hdl@ reads a character from the file or
@@ -737,8 +746,8 @@ hReady = wrap E.hReady
 --  * 'isEOFError' if the end of file has been reached.
 --
 -- Wraps: @System.IO.'SIO.hGetChar'@.
-hGetChar ∷ (pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
-         ⇒ RegionalFileHandle ioMode pr → cr Char
+hGetChar ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
+         ⇒ handle ioMode pr → cr Char
 hGetChar = wrap E.hGetChar
 
 -- | Computation 'hGetLine' @hdl@ reads a line from the file or
@@ -754,8 +763,8 @@ hGetChar = wrap E.hGetChar
 -- line is returned.
 --
 -- Wraps: @System.IO.'SIO.hGetLine'@.
-hGetLine ∷ (pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
-         ⇒ RegionalFileHandle ioMode pr → cr String
+hGetLine ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
+         ⇒ handle ioMode pr → cr String
 hGetLine = wrap E.hGetLine
 
 -- | Computation 'hLookAhead' returns the next character from the handle
@@ -767,8 +776,8 @@ hGetLine = wrap E.hGetLine
 --  * 'isEOFError' if the end of file has been reached.
 --
 -- Wraps: @System.IO.'SIO.hLookAhead'@.
-hLookAhead ∷ (pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
-           ⇒ RegionalFileHandle ioMode pr → cr Char
+hLookAhead ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
+           ⇒ handle ioMode pr → cr Char
 hLookAhead = wrap E.hLookAhead
 
 -- | Computation 'hGetContents' @hdl@ returns the list of characters
@@ -801,8 +810,8 @@ hLookAhead = wrap E.hLookAhead
 --  * 'isEOFError' if the end of file has been reached.
 --
 -- Wraps: @System.IO.'SIO.hGetContents'@.
-hGetContents ∷ (pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
-             ⇒ RegionalFileHandle ioMode pr → cr String
+hGetContents ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, ReadModes ioMode)
+             ⇒ handle ioMode pr → cr String
 hGetContents = wrap E.hGetContents
 
 
@@ -819,8 +828,8 @@ hGetContents = wrap E.hGetContents
 --  * 'isPermissionError' if another system resource limit would be exceeded.
 --
 -- Wraps: @System.IO.'SIO.hPutChar'@.
-hPutChar ∷ (pr `AncestorRegion` cr, MonadIO cr, WriteModes ioMode)
-         ⇒ RegionalFileHandle ioMode pr → Char → cr ()
+hPutChar ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, WriteModes ioMode)
+         ⇒ handle ioMode pr → Char → cr ()
 hPutChar = wrap2 E.hPutChar
 
 -- | Computation 'hPutStr' @hdl s@ writes the string
@@ -833,15 +842,15 @@ hPutChar = wrap2 E.hPutChar
 --  * 'isPermissionError' if another system resource limit would be exceeded.
 --
 -- Wraps: @System.IO.'SIO.hPutStr'@.
-hPutStr ∷ (pr `AncestorRegion` cr, MonadIO cr, WriteModes ioMode)
-        ⇒ RegionalFileHandle ioMode pr → String → cr ()
+hPutStr ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, WriteModes ioMode)
+        ⇒ handle ioMode pr → String → cr ()
 hPutStr = wrap2 E.hPutStr
 
 -- | The same as 'hPutStr', but adds a newline character.
 --
 -- Wraps: @System.IO.'SIO.hPutStrLn'@.
-hPutStrLn ∷ (pr `AncestorRegion` cr, MonadIO cr, WriteModes ioMode)
-          ⇒ RegionalFileHandle ioMode pr → String → cr ()
+hPutStrLn ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, WriteModes ioMode)
+          ⇒ handle ioMode pr → String → cr ()
 hPutStrLn = wrap2 E.hPutStrLn
 
 -- | Computation 'hPrint' @hdl t@ writes the string representation of @t@
@@ -855,8 +864,8 @@ hPutStrLn = wrap2 E.hPutStrLn
 --  * 'isPermissionError' if another system resource limit would be exceeded.
 --
 -- Wraps: @System.IO.'SIO.hPrint'@.
-hPrint ∷ (pr `AncestorRegion` cr, MonadIO cr, WriteModes ioMode, Show α)
-       ⇒ RegionalFileHandle ioMode pr → α → cr ()
+hPrint ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr, WriteModes ioMode, Show α)
+       ⇒ handle ioMode pr → α → cr ()
 hPrint = wrap2 E.hPrint
 
 
@@ -961,18 +970,18 @@ withBinaryFile' filePath = withBinaryFile filePath mkIOMode
 -- with 'hSetNewlineMode' with 'noNewlineTranslation'.
 --
 -- Wraps: @System.IO.'SIO.hSetBinaryMode'@.
-hSetBinaryMode ∷ (pr `AncestorRegion` cr, MonadIO cr)
-               ⇒ RegionalFileHandle ioMode pr → Bool → cr ()
+hSetBinaryMode ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+               ⇒ handle ioMode pr → Bool → cr ()
 hSetBinaryMode = wrap2 E.hSetBinaryMode
 
 -- | 'hPutBuf' @hdl buf count@ writes @count@ 8-bit bytes from the
 -- buffer @buf@ to the handle @hdl@.  It returns ().
 --
--- 'hPutBuf' ignores any text encoding that applies to the 'RegionalFileHandle',
+-- 'hPutBuf' ignores any text encoding that applies to the handle,
 -- writing the bytes directly to the underlying file or device.
 --
 -- 'hPutBuf' ignores the prevailing 'TextEncoding' and
--- 'NewlineMode' on the 'RegionalFileHandle', and writes bytes directly.
+-- 'NewlineMode' on the handle, and writes bytes directly.
 --
 -- This operation may fail with:
 --
@@ -984,20 +993,24 @@ hSetBinaryMode = wrap2 E.hSetBinaryMode
 -- Wraps: @System.IO.'SIO.hPutBuf'@.
 hPutBuf ∷ ( pr1 `AncestorRegion` cr
           , pr2 `AncestorRegion` cr
+          , FileHandle       handle
           , AllocatedPointer pointer
           , MonadIO cr
           , WriteModes ioMode
           )
-        ⇒ RegionalFileHandle ioMode pr1
+        ⇒ handle ioMode pr1
         → pointer α pr2
         → Int
         → cr ()
 hPutBuf = wrapPtr E.hPutBuf
 
-wrapPtr ∷ (AllocatedPointer pointer, MonadIO cr)
+wrapPtr ∷ ∀ (handle  ∷ * → (* → *) → *) ioMode (pr1 ∷ * → *)
+            (pointer ∷ * → (* → *) → *) α      (pr2 ∷ * → *)
+            cr β
+        . (FileHandle handle, AllocatedPointer pointer, MonadIO cr)
         ⇒ (Handle ioMode → Ptr α → Int → IO β)
-        → (RegionalFileHandle ioMode pr1 → pointer α pr2 → Int → cr β)
-wrapPtr f = \h rPtr → liftIO ∘ f (unsafeHandle h) (unsafePtr rPtr)
+        → (handle ioMode pr1 → pointer α pr2 → Int → cr β)
+wrapPtr f = \h pointer → liftIO ∘ f (unsafeHandle h) (unsafePtr pointer)
 
 -- | 'hGetBuf' @hdl buf count@ reads data from the handle @hdl@
 -- into the buffer @buf@ until either EOF is reached or
@@ -1005,7 +1018,7 @@ wrapPtr f = \h rPtr → liftIO ∘ f (unsafeHandle h) (unsafePtr rPtr)
 -- It returns the number of bytes actually read.  This may be zero if
 -- EOF was reached before any data was read (or if @count@ is zero).
 --
--- 'hGetBuf' ignores whatever 'TextEncoding' the 'RegionalFileHandle' is
+-- 'hGetBuf' ignores whatever 'TextEncoding' the handle is
 -- currently using, and reads bytes directly from the underlying IO device.
 --
 -- 'hGetBuf' never raises an EOF exception, instead it returns a value
@@ -1015,16 +1028,17 @@ wrapPtr f = \h rPtr → liftIO ∘ f (unsafeHandle h) (unsafePtr rPtr)
 -- is closed, 'hGetBuf' will behave as if EOF was reached.
 --
 -- 'hGetBuf' ignores the prevailing 'TextEncoding' and 'NewlineMode' on the
--- 'RegionalFileHandle', and reads bytes directly.
+-- handle, and reads bytes directly.
 --
 -- Wraps: @System.IO.'SIO.hGetBuf'@.
 hGetBuf ∷ ( pr1 `AncestorRegion` cr
           , pr2 `AncestorRegion` cr
+          , FileHandle       handle
           , AllocatedPointer pointer
           , MonadIO cr
           , ReadModes ioMode
           )
-        ⇒ RegionalFileHandle ioMode pr1
+        ⇒ handle ioMode pr1
         → pointer α pr2
         → Int
         → cr Int
@@ -1048,16 +1062,17 @@ hGetBuf = wrapPtr E.hGetBuf
 -- is closed, 'hGetBufSome' will behave as if EOF was reached.
 --
 -- 'hGetBufSome' ignores the prevailing 'TextEncoding' and 'NewlineMode'
--- on the 'Handle', and reads bytes directly.
+-- on the handle, and reads bytes directly.
 --
 -- Wraps: @System.IO.'SIO.hGetBufSome'@.
 hGetBufSome ∷ ( pr1 `AncestorRegion` cr
               , pr2 `AncestorRegion` cr
+              , FileHandle       handle
               , AllocatedPointer pointer
               , MonadIO cr
               , ReadModes ioMode
               )
-            ⇒ RegionalFileHandle ioMode pr1
+            ⇒ handle ioMode pr1
             → pointer α pr2
             → Int
             → cr Int
@@ -1067,11 +1082,12 @@ hGetBufSome = wrapPtr E.hGetBufSome
 -- | Wraps: @System.IO.'SIO.hPutBufNonBlocking'@.
 hPutBufNonBlocking ∷ ( pr1 `AncestorRegion` cr
                      , pr2 `AncestorRegion` cr
+                     , FileHandle       handle
                      , AllocatedPointer pointer
                      , MonadIO cr
                      , WriteModes ioMode
                      )
-                   ⇒ RegionalFileHandle ioMode pr1
+                   ⇒ handle ioMode pr1
                    → pointer α pr2
                    → Int
                    → cr Int
@@ -1087,23 +1103,24 @@ hPutBufNonBlocking = wrapPtr E.hPutBufNonBlocking
 -- only whatever data is available.  To wait for data to arrive before
 -- calling 'hGetBufNonBlocking', use 'hWaitForInput'.
 --
--- 'hGetBufNonBlocking' ignores whatever 'TextEncoding' the 'RegionalFileHandle'
+-- 'hGetBufNonBlocking' ignores whatever 'TextEncoding' the handle
 -- is currently using, and reads bytes directly from the underlying IO device.
 --
 -- If the handle is a pipe or socket, and the writing end
 -- is closed, 'hGetBufNonBlocking' will behave as if EOF was reached.
 --
 -- 'hGetBufNonBlocking' ignores the prevailing 'TextEncoding' and 'NewlineMode'
--- on the 'RegionalFileHandle', and reads bytes directly.
+-- on the handle, and reads bytes directly.
 --
 -- Wraps: @System.IO.'SIO.hGetBufNonBlocking'@.
 hGetBufNonBlocking ∷ ( pr1 `AncestorRegion` cr
                      , pr2 `AncestorRegion` cr
+                     , FileHandle       handle
                      , AllocatedPointer pointer
                      , MonadIO cr
                      , ReadModes ioMode
                      )
-                   ⇒ RegionalFileHandle ioMode pr1
+                   ⇒ handle ioMode pr1
                    → pointer α pr2
                    → Int
                    → cr Int
@@ -1132,7 +1149,7 @@ openTemp ∷ (MonadControlIO pr, AbsRelClass ar)
 openTemp open = \dirPath template → mask_ $ do
   (fp, h) ← liftIO $ open (getPathString dirPath) (getPathString template)
   ch ← onExit $ sanitizeIOError $ hClose h
-  return (asAbsFile fp, RegionalFileHandle h $ Just ch)
+  return (asAbsFile fp, RegionalFileHandle h ch)
 
 -- | The function creates a temporary file in 'ReadWriteMode'. The created file
 -- isn\'t deleted automatically, so you need to delete it manually.
@@ -1206,33 +1223,33 @@ openBinaryTempFileWithDefaultPermissions = openTemp $ E.openBinaryTempFileWithDe
 
 -- | The action 'hSetEncoding' @hdl@ @encoding@ changes the text encoding for
 -- the handle @hdl@ to @encoding@.  The default encoding when a
--- 'RegionalFileHandle' is created is 'localeEncoding', namely the default
+-- handle is created is 'localeEncoding', namely the default
 -- encoding for the current locale.
 --
--- To create a 'RegionalFileHandle' with no encoding at all, use
+-- To create a handle with no encoding at all, use
 -- 'openBinaryFile'. To stop further encoding or decoding on an existing
--- 'RegionalFileHandle', use 'hSetBinaryMode'.
+-- handle, use 'hSetBinaryMode'.
 --
 -- 'hSetEncoding' may need to flush buffered data in order to change
 -- the encoding.
 --
 -- Wraps: @System.IO.'SIO.hSetEncoding'@.
-hSetEncoding ∷ (pr `AncestorRegion` cr, MonadIO cr)
-             ⇒ RegionalFileHandle ioMode pr → TextEncoding → cr ()
+hSetEncoding ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+             ⇒ handle ioMode pr → TextEncoding → cr ()
 hSetEncoding = wrap2 E.hSetEncoding
 
--- | Return the current 'TextEncoding' for the specified 'RegionalFileHandle',
--- or 'Nothing' if the 'Handle' is in binary mode.
+-- | Return the current 'TextEncoding' for the specified handle,
+-- or 'Nothing' if the handle is in binary mode.
 --
 -- Note that the 'TextEncoding' remembers nothing about the state of the
--- encoder/decoder in use on this 'RegionalFileHandle'. For example, if the
+-- encoder/decoder in use on this handle. For example, if the
 -- encoding in use is UTF-16, then using 'hGetEncoding' and 'hSetEncoding' to
 -- save and restore the encoding may result in an extra byte-order-mark being
 -- written to the file.
 --
 -- Wraps: @System.IO.'SIO.hGetEncoding'@.
-hGetEncoding ∷ (pr `AncestorRegion` cr, MonadIO cr)
-             ⇒ RegionalFileHandle ioMode pr → cr (Maybe TextEncoding)
+hGetEncoding ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+             ⇒ handle ioMode pr → cr (Maybe TextEncoding)
 hGetEncoding = wrap E.hGetEncoding
 
 -- | Generalizes @System.IO.'SIO.mkTextEncoding'@ to any 'MonadIO'.
@@ -1244,12 +1261,13 @@ mkTextEncoding = liftIO ∘ E.mkTextEncoding
 -- * Newline conversion
 --------------------------------------------------------------------------------
 
--- | Set the 'NewlineMode' on the specified 'RegionalFileHandle'. All buffered
--- data is flushed first.
+-- | Set the 'NewlineMode' on the specified handle.
+--
+-- All buffered data is flushed first.
 --
 -- Wraps: @System.IO.'SIO.hSetNewlineMode'@.
-hSetNewlineMode ∷ (pr `AncestorRegion` cr, MonadIO cr)
-                ⇒ RegionalFileHandle ioMode pr → NewlineMode → cr ()
+hSetNewlineMode ∷ (FileHandle handle, pr `AncestorRegion` cr, MonadIO cr)
+                ⇒ handle ioMode pr → NewlineMode → cr ()
 hSetNewlineMode = wrap2 E.hSetNewlineMode
 #endif
 
