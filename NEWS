@@ -1,3 +1,18 @@
+0.10
+
+(Released on: Wed Mar 9 12:21:05 UTC 2011)
+
+* Switch from monad-peel to monad-control.
+
+* Support regional-pointers-0.6 and use its overloaded pointers.
+
+* Add separate type for standard handles.
+
+* Add FileHandle type class.
+
+* Overload the filehandle in operations.
+
+
 0.9
 
 (Released on: Sat Nov 6 15:57:09 UTC 2010)
