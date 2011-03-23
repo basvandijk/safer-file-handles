@@ -73,12 +73,13 @@ module System.IO.SaferFileHandles
     , MkIOMode(mkIOMode)
 
       -- ** Standard handles
-      {-| These standard handles have concrete IOModes by default which work
+      {-| The standard handles have concrete IOModes by default which work
       for the majority of cases. In the rare occasion that you know these
-      handles have different IOModes you can 'cast' them.
+      handles have different IOModes you can safely 'cast' them
+      to the expected IOMode.
 
-      Note that these handles are pure values. This means they don't perform the
-      side-effect of registering a finalizer like @hClose stdin@ in the
+      Note that these handles are pure values. This means they don't perform
+      side-effects like registering finalizers like @hClose stdin@ in the
       'RegionT' monad.
 
       Finally note that the region parameter of the handles is set to
