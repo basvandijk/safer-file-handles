@@ -1,5 +1,5 @@
 name:          safer-file-handles
-version:       0.10
+version:       0.10.0.1
 cabal-version: >=1.6
 build-type:    Custom
 license:       BSD3
@@ -46,8 +46,8 @@ description:   This package adds three safety features on top of the regular
 	       @ByteString/Text@ operations on regional file handles.
 
 source-repository head
-  Type:     darcs
-  Location: http://code.haskell.org/~basvandijk/code/safer-file-handles
+  Type:     git
+  Location: git://github.com/basvandijk/safer-file-handles.git
 
 Library
   GHC-Options: -Wall
