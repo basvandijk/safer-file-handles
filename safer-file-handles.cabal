@@ -46,6 +46,8 @@ description:   This package adds three safety features on top of the regular
 	       See the @safer-file-handles-bytestring/text@ package for
 	       @ByteString/Text@ operations on regional file handles.
 
+extra-source-files: README.markdown, NEWS
+
 source-repository head
   Type:     git
   Location: git://github.com/basvandijk/safer-file-handles.git
