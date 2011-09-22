@@ -39,7 +39,7 @@
 -- See the @safer-file-handles-examples@ package for examples how to use this
 -- package:
 --
--- @darcs get <http://code.haskell.org/~basvandijk/code/safer-file-handles-examples>@
+-- @git clone <https://github.com/basvandijk/safer-file-handles-examples>@
 --
 -- /NOTE:/ This module also provides functions from @System.IO@ which don't
 -- directly work with file handles like 'putStrLn' or 'getLine' for
