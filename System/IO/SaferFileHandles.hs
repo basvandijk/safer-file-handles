@@ -248,7 +248,7 @@ import Control.Monad     ( return, (>>=), liftM )
 import Data.Bool         ( Bool(..) )
 import Data.Function     ( ($) )
 import Data.Functor      ( fmap )
-import Data.Char         ( Char, String )
+import Data.Char         ( Char )
 import Data.Int          ( Int )
 import Data.Maybe        ( Maybe )
 import Text.Show         ( Show )
@@ -259,6 +259,12 @@ import qualified System.IO as SIO
 
 #if __GLASGOW_HASKELL__ < 700
 import Control.Monad     ( fail )
+#endif
+
+#if MIN_VERSION_base(4,4,0)
+import Data.String       ( String )
+#else
+import Data.Char         ( String )
 #endif
 
 #ifdef __HADDOCK__
@@ -274,6 +280,7 @@ import Control.Monad.IO.Class ( MonadIO, liftIO )
 -- from regions:
 import Control.Monad.Trans.Region     -- ( re-exported entirely )
 import Control.Monad.Trans.Region.OnExit ( onExit )
+import Control.Monad.Trans.Region.Unsafe ( unsafeLiftIOOp_ )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( IO
@@ -341,11 +348,11 @@ import System.IO.SaferFileHandles.Unsafe   ( unsafeHandle
 import Control.Monad.IO.Control  ( MonadControlIO )
 
 #if MIN_VERSION_base(4,3,0)
-import Control.Exception.Control ( mask_ )
+import Control.Exception ( mask_ )
 #else
-import Control.Exception.Control ( block )
+import Control.Exception ( block )
 
-mask_ ∷ MonadControlIO m ⇒ m a → m a
+mask_ ∷ IO a → IO a
 mask_ = block
 #endif
 
@@ -439,7 +446,7 @@ openNormal ∷ (MonadControlIO pr, AbsRelClass ar)
              → RegionT s pr
                  (RegionalFileHandle ioMode (RegionT s pr))
              )
-openNormal open = \filePath ioMode → mask_ $ do
+openNormal open = \filePath ioMode → unsafeLiftIOOp_ mask_ $ do
   h ← liftIO $ open (getPathString filePath) ioMode
   ch ← onExit $ sanitizeIOError $ hClose h
   return $ RegionalFileHandle h ch
@@ -1147,7 +1154,7 @@ openTemp ∷ (MonadControlIO pr, AbsRelClass ar)
                           , RegionalFileHandle ReadWriteMode (RegionT s pr)
                           )
            )
-openTemp open = \dirPath template → mask_ $ do
+openTemp open = \dirPath template → unsafeLiftIOOp_ mask_ $ do
   (fp, h) ← liftIO $ open (getPathString dirPath) (getPathString template)
   ch ← onExit $ sanitizeIOError $ hClose h
   return (asAbsFile fp, RegionalFileHandle h ch)
