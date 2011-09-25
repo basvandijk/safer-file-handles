@@ -280,7 +280,7 @@ import Control.Monad.IO.Class ( MonadIO, liftIO )
 -- from regions:
 import Control.Monad.Trans.Region     -- ( re-exported entirely )
 import Control.Monad.Trans.Region.OnExit ( onExit )
-import Control.Monad.Trans.Region.Unsafe ( unsafeLiftIOOp_ )
+import Control.Monad.Trans.Region.Unsafe ( unsafeControlIO )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( IO
@@ -443,10 +443,11 @@ openNormal ∷ (RegionControlIO pr, AbsRelClass ar)
              → RegionT s pr
                  (RegionalFileHandle ioMode (RegionT s pr))
              )
-openNormal open = \filePath ioMode → unsafeLiftIOOp_ mask_ $ do
-  h ← liftIO $ open (getPathString filePath) ioMode
-  ch ← onExit $ sanitizeIOError $ hClose h
-  return $ RegionalFileHandle h ch
+openNormal open = \filePath ioMode → unsafeControlIO $ \runInIO → mask_ $ do
+  h ← open (getPathString filePath) ioMode
+  runInIO $ do
+    ch ← onExit $ sanitizeIOError $ hClose h
+    return $ RegionalFileHandle h ch
 
 {-| Convenience function which opens a file, applies the given continuation
 function to the resulting regional file handle and runs the resulting
@@ -1151,10 +1152,11 @@ openTemp ∷ (RegionControlIO pr, AbsRelClass ar)
                           , RegionalFileHandle ReadWriteMode (RegionT s pr)
                           )
            )
-openTemp open = \dirPath template → unsafeLiftIOOp_ mask_ $ do
-  (fp, h) ← liftIO $ open (getPathString dirPath) (getPathString template)
-  ch ← onExit $ sanitizeIOError $ hClose h
-  return (asAbsFile fp, RegionalFileHandle h ch)
+openTemp open = \dirPath template → unsafeControlIO $ \runInIO → mask_ $ do
+  (fp, h) ← open (getPathString dirPath) (getPathString template)
+  runInIO $ do
+    ch ← onExit $ sanitizeIOError $ hClose h
+    return (asAbsFile fp, RegionalFileHandle h ch)
 
 -- | The function creates a temporary file in 'ReadWriteMode'. The created file
 -- isn\'t deleted automatically, so you need to delete it manually.
