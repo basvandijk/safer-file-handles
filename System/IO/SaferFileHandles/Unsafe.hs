@@ -46,18 +46,18 @@ import System.IO.SaferFileHandles.Internal ( FileHandle, unsafeHandle )
 --------------------------------------------------------------------------------
 
 wrap ∷ (FileHandle handle, MonadIO m)
-     ⇒ (Handle ioMode → IO α)
-     → (handle ioMode r → m α)
+     ⇒ (Handle ioMode   → IO α)
+     → (handle ioMode r → m  α)
 wrap f = \h → liftIO $ sanitizeIOError $ f (unsafeHandle h)
 
 wrap2 ∷ (FileHandle handle, MonadIO m)
-      ⇒ (Handle ioMode → β → IO α)
-      → (handle ioMode r → β → m α)
+      ⇒ (Handle ioMode   → β → IO α)
+      → (handle ioMode r → β → m  α)
 wrap2 f = \h y → liftIO $ sanitizeIOError $ f (unsafeHandle h) y
 
 wrap3 ∷ (FileHandle handle, MonadIO m)
-      ⇒ (Handle ioMode → γ → β → IO α)
-      → (handle ioMode r → γ → β → m α)
+      ⇒ (Handle ioMode   → γ → β → IO α)
+      → (handle ioMode r → γ → β → m  α)
 wrap3 f = \h z y → liftIO $ sanitizeIOError $ f (unsafeHandle h) z y
 
 -- | Modify thrown @IOErrors@ in the given computation by erasing the
