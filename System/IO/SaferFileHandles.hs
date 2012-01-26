@@ -451,7 +451,7 @@ openNormal open = \filePath ioMode → unsafeControlIO $ \runInIO → mask_ $ do
 
 {-| Convenience function which opens a file, applies the given continuation
 function to the resulting regional file handle and runs the resulting
-region. This provides a safer safer replacement for @System.IO.'SIO.withFile'@.
+region. This provides a safer replacement for @System.IO.'SIO.withFile'@.
 -}
 withFile ∷ (RegionControlIO pr, AbsRelClass ar)
          ⇒ FilePath ar
