@@ -1,6 +1,4 @@
-{-# LANGUAGE UnicodeSyntax
-           , NoImplicitPrelude
-           , KindSignatures
+{-# LANGUAGE KindSignatures
            , CPP
   #-}
 

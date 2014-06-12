@@ -1,5 +1,3 @@
-{-# LANGUAGE UnicodeSyntax, NoImplicitPrelude #-}
-
 --------------------------------------------------------------------------------
 -- |
 -- Module      :  System.IO.SaferFileHandles.Unsafe

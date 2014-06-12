@@ -1,8 +1,6 @@
-{-# LANGUAGE UnicodeSyntax
-           , NoImplicitPrelude
-           , CPP
+{-# LANGUAGE CPP
            , RankNTypes
-           , KindSignatures
+	   , FlexibleContexts
   #-}
 
 -------------------------------------------------------------------------------
@@ -195,9 +193,7 @@ module System.IO.SaferFileHandles
     , hGetBuf
 
 #if !defined(__NHC__) && !defined(__HUGS__)
-#if MIN_VERSION_base(4,3,0)
     , hGetBufSome
-#endif
     , hPutBufNonBlocking
     , hGetBufNonBlocking
 #endif
@@ -208,12 +204,10 @@ module System.IO.SaferFileHandles
     , openTempFile
     , openBinaryTempFile
 
-#if MIN_VERSION_base(4,2,0)
     , openTempFileWithDefaultPermissions
     , openBinaryTempFileWithDefaultPermissions
-#endif
 
-#if MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
+#if !defined(__NHC__) && !defined(__HUGS__)
     -- * Unicode encoding/decoding
     , hSetEncoding
     , hGetEncoding
@@ -261,11 +255,7 @@ import qualified System.IO as SIO
 import Control.Monad     ( fail )
 #endif
 
-#if MIN_VERSION_base(4,4,0)
 import Data.String       ( String )
-#else
-import Data.Char         ( String )
-#endif
 
 #ifdef __HADDOCK__
 import System.IO.Error
@@ -280,7 +270,7 @@ import Control.Monad.IO.Class ( MonadIO, liftIO )
 -- from regions:
 import Control.Monad.Trans.Region     -- ( re-exported entirely )
 import Control.Monad.Trans.Region.OnExit ( onExit )
-import Control.Monad.Trans.Region.Unsafe ( unsafeControlIO )
+import Control.Monad.Trans.Region.Unsafe ( unsafeControl )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes ( IO
@@ -305,7 +295,7 @@ import System.IO.ExplicitIOModes ( IO
                                  , BufferMode(..)
                                  , HandlePosn
                                  , SeekMode(..)
-#if MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
+#if !defined(__NHC__) && !defined(__HUGS__)
                                  , TextEncoding
                                  , latin1
                                  , utf8, utf8_bom
@@ -344,15 +334,7 @@ import System.IO.SaferFileHandles.Unsafe   ( unsafeHandle
                                            , sanitizeIOError
                                            )
 
-#if MIN_VERSION_base(4,3,0)
 import Control.Exception ( mask_ )
-#else
-import Control.Exception ( block )
-
-mask_ ∷ IO a → IO a
-mask_ = block
-#endif
-
 
 -------------------------------------------------------------------------------
 -- ** Standard handles
@@ -429,21 +411,21 @@ This operation may fail with:
 Note: if you will be working with files containing binary data, you'll want to
 be using 'openBinaryFile'.
 -}
-openFile ∷ (RegionControlIO pr, AbsRelClass ar)
+openFile ∷ (RegionBaseControl IO pr, AbsRelClass ar)
          ⇒ FilePath ar
          → IOMode ioMode
          → RegionT s pr
              (RegionalFileHandle ioMode (RegionT s pr))
 openFile = openNormal E.openFile
 
-openNormal ∷ (RegionControlIO pr, AbsRelClass ar)
+openNormal ∷ (RegionBaseControl IO pr, AbsRelClass ar)
            ⇒ (E.FilePath → IOMode ioMode → IO (E.Handle ioMode))
            → ( FilePath ar
              → IOMode ioMode
              → RegionT s pr
                  (RegionalFileHandle ioMode (RegionT s pr))
              )
-openNormal open = \filePath ioMode → unsafeControlIO $ \runInIO → mask_ $ do
+openNormal open = \filePath ioMode → unsafeControl $ \runInIO → mask_ $ do
   h ← open (getPathString filePath) ioMode
   runInIO $ do
     ch ← onExit $ sanitizeIOError $ hClose h
@@ -453,7 +435,7 @@ openNormal open = \filePath ioMode → unsafeControlIO $ \runInIO → mask_ $ do
 function to the resulting regional file handle and runs the resulting
 region. This provides a safer replacement for @System.IO.'SIO.withFile'@.
 -}
-withFile ∷ (RegionControlIO pr, AbsRelClass ar)
+withFile ∷ (RegionBaseControl IO pr, AbsRelClass ar)
          ⇒ FilePath ar
          → IOMode ioMode
          → (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
@@ -466,14 +448,14 @@ withFile filePath ioMode f = runRegionT $ openFile filePath ioMode >>= f
 -- inferred from the type of the resulting 'RegionalFileHandle'.
 --
 -- Note that: @openFile' fp = 'openFile' fp 'mkIOMode'@.
-openFile' ∷ (RegionControlIO pr, AbsRelClass ar, MkIOMode ioMode)
+openFile' ∷ (RegionBaseControl IO pr, AbsRelClass ar, MkIOMode ioMode)
           ⇒ FilePath ar
           → RegionT s pr
               (RegionalFileHandle ioMode (RegionT s pr))
 openFile' filePath = openFile filePath mkIOMode
 
 -- | Note that: @withFile' filePath = 'withFile' filePath 'mkIOMode'@.
-withFile' ∷ (RegionControlIO pr, AbsRelClass ar, MkIOMode ioMode)
+withFile' ∷ (RegionBaseControl IO pr, AbsRelClass ar, MkIOMode ioMode)
           ⇒ FilePath ar
           → (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
           → pr α
@@ -932,7 +914,7 @@ readLn = liftIO SIO.readLn
 -- characters.  (See also 'hSetBinaryMode'.)
 --
 -- This provides a safer replacement for @System.IO.'SIO.openBinaryFile'@.
-openBinaryFile ∷ (RegionControlIO pr, AbsRelClass ar)
+openBinaryFile ∷ (RegionBaseControl IO pr, AbsRelClass ar)
                ⇒ FilePath ar
                → IOMode ioMode
                → RegionT s pr
@@ -944,7 +926,7 @@ continuation function to the resulting regional file handle and runs the
 resulting region. This provides a safer replacement for
 @System.IO.'SIO.withBinaryFile'@.
 -}
-withBinaryFile ∷ (RegionControlIO pr, AbsRelClass ar)
+withBinaryFile ∷ (RegionBaseControl IO pr, AbsRelClass ar)
                ⇒ FilePath ar
                → IOMode ioMode
                →  (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
@@ -954,14 +936,14 @@ withBinaryFile filePath ioMode f = runRegionT $ openBinaryFile filePath ioMode >
 -- ** Opening binary files by inferring the IOMode
 
 -- | Note that: @openBinaryFile' filePath = 'openBinaryFile' filePath 'mkIOMode'@.
-openBinaryFile' ∷ (RegionControlIO pr, AbsRelClass ar, MkIOMode ioMode)
+openBinaryFile' ∷ (RegionBaseControl IO pr, AbsRelClass ar, MkIOMode ioMode)
                 ⇒ FilePath ar
                 → RegionT s pr
                     (RegionalFileHandle ioMode (RegionT s pr))
 openBinaryFile' filePath = openBinaryFile filePath mkIOMode
 
 -- | Note that: @withBinaryFile' filePath = 'withBinaryFile' filePath 'mkIOMode'@.
-withBinaryFile' ∷ (RegionControlIO pr, AbsRelClass ar, MkIOMode ioMode)
+withBinaryFile' ∷ (RegionBaseControl IO pr, AbsRelClass ar, MkIOMode ioMode)
                 ⇒ FilePath ar
                 →  (∀ s. RegionalFileHandle ioMode (RegionT s pr) → RegionT s pr α)
                 → pr α
@@ -1052,7 +1034,6 @@ hGetBuf = wrapPtr E.hGetBuf
 
 #if !defined(__NHC__) && !defined(__HUGS__)
 
-#if MIN_VERSION_base(4,3,0)
 -- | 'hGetBufSome' @hdl buf count@ reads data from the handle @hdl@
 -- into the buffer @buf@.  If there is any data available to read,
 -- then 'hGetBufSome' returns it immediately; it only blocks if there
@@ -1083,7 +1064,6 @@ hGetBufSome ∷ ( pr1 `AncestorRegion` cr
             → Int
             → cr Int
 hGetBufSome = wrapPtr E.hGetBufSome
-#endif
 
 -- | Wraps: @System.IO.'SIO.hPutBufNonBlocking'@.
 hPutBufNonBlocking ∷ ( pr1 `AncestorRegion` cr
@@ -1144,7 +1124,7 @@ hGetBufNonBlocking = wrapPtr E.hGetBufNonBlocking
 -- where XXX is some random number.
 type Template = RelFile
 
-openTemp ∷ (RegionControlIO pr, AbsRelClass ar)
+openTemp ∷ (RegionBaseControl IO pr, AbsRelClass ar)
          ⇒ (E.FilePath → String → IO (E.FilePath, E.Handle ReadWriteMode))
          → ( DirPath ar
            → Template
@@ -1152,7 +1132,7 @@ openTemp ∷ (RegionControlIO pr, AbsRelClass ar)
                           , RegionalFileHandle ReadWriteMode (RegionT s pr)
                           )
            )
-openTemp open = \dirPath template → unsafeControlIO $ \runInIO → mask_ $ do
+openTemp open = \dirPath template → unsafeControl $ \runInIO → mask_ $ do
   (fp, h) ← open (getPathString dirPath) (getPathString template)
   runInIO $ do
     ch ← onExit $ sanitizeIOError $ hClose h
@@ -1173,7 +1153,7 @@ openTemp open = \dirPath template → unsafeControlIO $ \runInIO → mask_ $ do
 -- so if you rely on this behaviour it is best to use local filesystems only.
 --
 -- This provides a safer replacement for @System.IO.'SIO.openTempFile'@.
-openTempFile ∷ (RegionControlIO pr, AbsRelClass ar)
+openTempFile ∷ (RegionBaseControl IO pr, AbsRelClass ar)
              ⇒ DirPath ar -- ^ Directory in which to create the file.
              → Template   -- ^ File name template.
              → RegionT s pr ( AbsFile
@@ -1186,7 +1166,7 @@ openTempFile = openTemp E.openTempFile
 --
 -- This provides a safer replacement for @System.IO.'SIO.openBinaryTempFile'@.
 openBinaryTempFile ∷
-    (RegionControlIO pr, AbsRelClass ar)
+    (RegionBaseControl IO pr, AbsRelClass ar)
   ⇒ DirPath ar
   → Template
   → RegionT s pr ( AbsFile
@@ -1194,13 +1174,12 @@ openBinaryTempFile ∷
                  )
 openBinaryTempFile = openTemp E.openBinaryTempFile
 
-#if MIN_VERSION_base(4,2,0)
 -- | Like 'openTempFile', but uses the default file permissions.
 --
 -- This provides a safer replacement for
 -- @System.IO.'SIO.openTempFileWithDefaultPermissions'@.
 openTempFileWithDefaultPermissions ∷
-    (RegionControlIO pr, AbsRelClass ar)
+    (RegionBaseControl IO pr, AbsRelClass ar)
   ⇒ DirPath ar
   → Template
   → RegionT s pr ( AbsFile
@@ -1213,17 +1192,16 @@ openTempFileWithDefaultPermissions = openTemp E.openTempFileWithDefaultPermissio
 -- This provides a safer replacement for
 -- @System.IO.'SIO.openBinaryTempFileWithDefaultPermissions'@.
 openBinaryTempFileWithDefaultPermissions ∷
-    (RegionControlIO pr, AbsRelClass ar)
+    (RegionBaseControl IO pr, AbsRelClass ar)
   ⇒ DirPath ar
   → Template
   → RegionT s pr ( AbsFile
                  , RegionalFileHandle ReadWriteMode (RegionT s pr)
                  )
 openBinaryTempFileWithDefaultPermissions = openTemp $ E.openBinaryTempFileWithDefaultPermissions
-#endif
 
 
-#if MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
+#if !defined(__NHC__) && !defined(__HUGS__)
 --------------------------------------------------------------------------------
 -- * Unicode encoding/decoding
 --------------------------------------------------------------------------------

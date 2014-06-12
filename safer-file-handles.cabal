@@ -55,13 +55,20 @@ source-repository head
 
 Library
   GHC-Options: -Wall
-  build-depends: base                      >= 4     && < 4.5
+  build-depends: base                      >= 4.7   && < 4.8
                , base-unicode-symbols      >= 0.1.1 && < 0.3
-               , regions                   >= 0.11  && < 0.12
-               , transformers              >= 0.2   && < 0.3
+               , regions                   >= 0.12  && < 0.13
+               , transformers              >= 0.2   && < 0.5
                , explicit-iomodes          >= 0.5   && < 0.7
                , pathtype                  >= 0.0.1 && < 0.6
-               , regional-pointers         >= 0.7   && < 0.8
+               , regional-pointers         >= 0.8   && < 0.9
   exposed-modules: System.IO.SaferFileHandles
                    System.IO.SaferFileHandles.Unsafe
   other-modules:   System.IO.SaferFileHandles.Internal
+  extensions:      TypeOperators
+                   NoImplicitPrelude
+                   UnicodeSyntax
+                   KindSignatures
+  other-extensions: CPP
+                    RankNTypes
+                    FlexibleContexts
