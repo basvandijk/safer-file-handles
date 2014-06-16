@@ -1,3 +1,5 @@
+{-# LANGUAGE NoImplicitPrelude, FlexibleContexts #-}
+
 --------------------------------------------------------------------------------
 -- |
 -- Module      :  System.IO.SaferFileHandles.Unsafe
@@ -29,8 +31,8 @@ import Data.Maybe                        ( Maybe(Nothing) )
 import GHC.IO.Exception                  ( ioe_handle )
 import System.IO.Error                   ( modifyIOError )
 
--- from transformers:
-import Control.Monad.IO.Class            ( MonadIO, liftIO )
+-- from transformers-base:
+import Control.Monad.Base                ( MonadBase, liftBase )
 
 -- from explicit-iomodes
 import System.IO.ExplicitIOModes         ( Handle, IO )
@@ -43,20 +45,20 @@ import System.IO.SaferFileHandles.Internal ( FileHandle, unsafeHandle )
 -- Getting the actual @Handle@
 --------------------------------------------------------------------------------
 
-wrap ∷ (FileHandle handle, MonadIO m)
-     ⇒ (Handle ioMode   → IO α)
-     → (handle ioMode r → m  α)
-wrap f = \h → liftIO $ sanitizeIOError $ f (unsafeHandle h)
+wrap :: (FileHandle handle, MonadBase IO m)
+     => (Handle ioMode   -> IO a)
+     -> (handle ioMode r -> m  a)
+wrap f = \h -> liftBase $ sanitizeIOError $ f (unsafeHandle h)
 
-wrap2 ∷ (FileHandle handle, MonadIO m)
-      ⇒ (Handle ioMode   → β → IO α)
-      → (handle ioMode r → β → m  α)
-wrap2 f = \h y → liftIO $ sanitizeIOError $ f (unsafeHandle h) y
+wrap2 :: (FileHandle handle, MonadBase IO m)
+      => (Handle ioMode   -> b -> IO a)
+      -> (handle ioMode r -> b -> m  a)
+wrap2 f = \h y -> liftBase $ sanitizeIOError $ f (unsafeHandle h) y
 
-wrap3 ∷ (FileHandle handle, MonadIO m)
-      ⇒ (Handle ioMode   → γ → β → IO α)
-      → (handle ioMode r → γ → β → m  α)
-wrap3 f = \h z y → liftIO $ sanitizeIOError $ f (unsafeHandle h) z y
+wrap3 :: (FileHandle handle, MonadBase IO m)
+      => (Handle ioMode   -> γ -> b -> IO a)
+      -> (handle ioMode r -> γ -> b -> m  a)
+wrap3 f = \h z y -> liftBase $ sanitizeIOError $ f (unsafeHandle h) z y
 
 -- | Modify thrown @IOErrors@ in the given computation by erasing the
 -- 'ioe_handle' field in the @IOError@ which may contain the @Handle@ which
@@ -64,8 +66,5 @@ wrap3 f = \h z y → liftIO $ sanitizeIOError $ f (unsafeHandle h) z y
 --
 -- I use this to ensure that @Handles@ don't /leak/ out the region via
 -- exceptions.
-sanitizeIOError ∷ IO α → IO α
-sanitizeIOError = modifyIOError $ \e → e { ioe_handle = Nothing }
-
-
--- The End ---------------------------------------------------------------------
+sanitizeIOError :: IO a -> IO a
+sanitizeIOError = modifyIOError $ \e -> e { ioe_handle = Nothing }
