@@ -29,11 +29,11 @@ import Distribution.PackageDescription    ( PackageDescription )
 -- Setup program which sets the CPP define '__HADDOCK __' when haddock is run.
 -------------------------------------------------------------------------------
 
-main ∷ IO ()
+main :: IO ()
 main = defaultMainWithHooks $ simpleUserHooks { haddockHook = haddockHook' }
 
 -- Define __HADDOCK__ for CPP when running haddock.
-haddockHook' ∷ PackageDescription → LocalBuildInfo → UserHooks → HaddockFlags → IO ()
+haddockHook' :: PackageDescription -> LocalBuildInfo -> UserHooks -> HaddockFlags -> IO ()
 haddockHook' pkg lbi =
   haddockHook simpleUserHooks pkg (lbi { withPrograms = p })
   where
